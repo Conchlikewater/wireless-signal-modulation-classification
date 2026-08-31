@@ -25,10 +25,11 @@ class ClassificationMetrics:
 
 @dataclass(frozen=True, slots=True)
 class SNRMetrics:
-    """Accuracy and sample count for one SNR level."""
+    """Accuracy, Macro F1, and sample count for one SNR level."""
 
     snr: float
     accuracy: float
+    macro_f1: float
     sample_count: int
 
 
@@ -114,8 +115,10 @@ def calculate_snr_metrics(
     labels: Tensor,
     predictions: Tensor,
     snrs: Tensor,
+    *,
+    num_classes: int | None = None,
 ) -> tuple[SNRMetrics, ...]:
-    """Group prediction accuracy by each observed SNR value."""
+    """Group prediction Accuracy and Macro F1 by each observed SNR value."""
 
     label_values = _as_cpu_long(labels, "labels")
     prediction_values = _as_cpu_long(predictions, "predictions")
@@ -130,13 +133,26 @@ def calculate_snr_metrics(
         raise ValueError("labels, predictions, and snrs must have the same non-zero shape")
     if not torch.isfinite(snr_values).all():
         raise ValueError("snrs must contain only finite values")
+    if num_classes is None:
+        num_classes = int(torch.maximum(label_values.max(), prediction_values.max())) + 1
 
     results: list[SNRMetrics] = []
     for snr in torch.unique(snr_values, sorted=True):
         mask = snr_values == snr
         sample_count = int(mask.sum())
-        accuracy = float((label_values[mask] == prediction_values[mask]).float().mean())
-        results.append(SNRMetrics(float(snr), accuracy, sample_count))
+        classification = calculate_classification_metrics(
+            label_values[mask],
+            prediction_values[mask],
+            num_classes=num_classes,
+        )
+        results.append(
+            SNRMetrics(
+                snr=float(snr),
+                accuracy=classification.accuracy,
+                macro_f1=classification.macro_f1,
+                sample_count=sample_count,
+            )
+        )
     return tuple(results)
 
 
@@ -188,5 +204,10 @@ def evaluate_classifier(
         classification=calculate_classification_metrics(
             all_labels, all_predictions, num_classes=num_classes
         ),
-        by_snr=calculate_snr_metrics(all_labels, all_predictions, all_snrs),
+        by_snr=calculate_snr_metrics(
+            all_labels,
+            all_predictions,
+            all_snrs,
+            num_classes=num_classes,
+        ),
     )

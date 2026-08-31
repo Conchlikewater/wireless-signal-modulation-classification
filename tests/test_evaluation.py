@@ -44,6 +44,8 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual([result.snr for result in results], [-10.0, 10.0])
         self.assertEqual([result.sample_count for result in results], [2, 2])
         self.assertEqual([result.accuracy for result in results], [0.5, 1.0])
+        self.assertAlmostEqual(results[0].macro_f1, 1.0 / 3.0)
+        self.assertAlmostEqual(results[1].macro_f1, 1.0)
 
     def test_invalid_class_index_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "valid class"):
