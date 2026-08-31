@@ -13,6 +13,7 @@ from signal_modulation.split_manifest import (
     DevelopmentLoaders,
     create_development_loaders,
     load_frozen_development_split,
+    sha256_indices,
 )
 
 
@@ -23,6 +24,18 @@ V2_DATASET_SHA256 = (
 V2_SAMPLE_COUNT = 220_000
 V2_SPLIT_SEED = 20260812
 V2_RUN_SEEDS = (20260901, 20260902, 20260903, 20260904, 20260905)
+V2_SPLIT_MANIFEST_SHA256 = (
+    "48ad195d5552e3ec4e5a6d1bc4fc0f20099df8dc70f8eb78a80df95e7f5297a7"
+)
+V2_TRAIN_INDEX_SHA256 = (
+    "8b605c73b4c31f49047189e13c99a77218881244756003422913fc376b2c2e69"
+)
+V2_VALIDATION_INDEX_SHA256 = (
+    "ef315218d7678da5d550b834379b9f8aa16ca6f326a2ffc857c6901e495b6641"
+)
+V2_TEST_INDEX_SHA256 = (
+    "16253cdc095d2b2283159b14a57aeb3ab4ef83e0038ea630f13e6f32f6a9ca7f"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +110,14 @@ def create_v2_development_loaders(
         expected_protocol_version=V2_PROTOCOL_VERSION,
         expected_sample_count=V2_SAMPLE_COUNT,
     )
+    if split.manifest_sha256 != V2_SPLIT_MANIFEST_SHA256:
+        raise ValueError("split manifest SHA-256 does not match the frozen V2 artifact")
+    if sha256_indices(split.train_indices) != V2_TRAIN_INDEX_SHA256:
+        raise ValueError("training indices do not match the frozen V2 protocol")
+    if sha256_indices(split.validation_indices) != V2_VALIDATION_INDEX_SHA256:
+        raise ValueError("validation indices do not match the frozen V2 protocol")
+    if split.test_index_sha256 != V2_TEST_INDEX_SHA256:
+        raise ValueError("test index metadata does not match the frozen V2 protocol")
     return create_development_loaders(
         dataset,
         split,
