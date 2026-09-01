@@ -31,3 +31,5 @@ artifacts/*
 *.pth
 *.ckpt
 !experiments/v2/w2/**/best_checkpoint.pt
+!experiments/v2/w3/**/best_checkpoint.pt
+!experiments/v2/w3/initial_backbones/*.pt

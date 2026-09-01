@@ -5,6 +5,7 @@ import unittest
 import torch
 
 from signal_modulation.model import (
+    GlobalPoolingTemporalCNN1D,
     SimpleCNN1D,
     TemporalCNN1D,
     count_trainable_parameters,
@@ -108,6 +109,61 @@ class TemporalCNN1DTests(unittest.TestCase):
         parameter_count = count_trainable_parameters(model)
 
         self.assertEqual(parameter_count, 224_587)
+
+    def test_dropout_ablation_preserves_parameter_initialization(self) -> None:
+        torch.manual_seed(123)
+        baseline = TemporalCNN1D(num_classes=11, dropout=0.3)
+        torch.manual_seed(123)
+        no_dropout = TemporalCNN1D(num_classes=11, dropout=0.0)
+
+        self.assertEqual(baseline.dropout, 0.3)
+        self.assertEqual(no_dropout.dropout, 0.0)
+        for name, baseline_value in baseline.state_dict().items():
+            torch.testing.assert_close(baseline_value, no_dropout.state_dict()[name])
+
+    def test_invalid_dropout_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "dropout"):
+            TemporalCNN1D(num_classes=11, dropout=1.0)
+
+
+class GlobalPoolingTemporalCNN1DTests(unittest.TestCase):
+    def test_output_and_backbone_shapes_match_frozen_a2g_design(self) -> None:
+        model = GlobalPoolingTemporalCNN1D(num_classes=11)
+        inputs = torch.randn(4, 2, 128)
+
+        backbone = model.features(inputs)
+        pooled = model.aggregation(backbone)
+        logits = model(inputs)
+
+        self.assertEqual(backbone.shape, (4, 128, 32))
+        self.assertEqual(pooled.shape, (4, 128, 1))
+        self.assertEqual(logits.shape, (4, 11))
+
+    def test_backbone_initialization_matches_temporal_cnn_for_same_seed(self) -> None:
+        torch.manual_seed(456)
+        temporal = TemporalCNN1D(num_classes=11)
+        torch.manual_seed(456)
+        global_pooling = GlobalPoolingTemporalCNN1D(num_classes=11)
+
+        temporal_backbone = temporal.features[:-1].state_dict()
+        global_backbone = global_pooling.features.state_dict()
+        self.assertEqual(temporal_backbone.keys(), global_backbone.keys())
+        for name, temporal_value in temporal_backbone.items():
+            torch.testing.assert_close(temporal_value, global_backbone[name])
+
+    def test_parameter_budget_matches_protocol(self) -> None:
+        model = GlobalPoolingTemporalCNN1D(num_classes=11)
+
+        self.assertEqual(count_trainable_parameters(model.classifier), 132_591)
+        self.assertEqual(count_trainable_parameters(model), 224_559)
+        self.assertLess(
+            abs(224_587 - count_trainable_parameters(model)) / 224_587,
+            0.01,
+        )
+
+    def test_non_frozen_sequence_length_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "sequence_length=128"):
+            GlobalPoolingTemporalCNN1D(num_classes=11, sequence_length=64)
 
 
 if __name__ == "__main__":

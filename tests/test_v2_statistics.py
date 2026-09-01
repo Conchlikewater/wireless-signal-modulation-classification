@@ -6,6 +6,7 @@ import unittest
 from signal_modulation.v2_statistics import (
     descriptive_summary,
     summarize_w2_results,
+    summarize_w3_results,
 )
 
 
@@ -21,7 +22,15 @@ def _record(
         "status": "completed",
         "configuration": configuration,
         "run_seed": run_seed,
-        "model": {"trainable_parameters": 10 if configuration == "A0" else 20},
+        "model": {
+            "trainable_parameters": {
+                "A0": 10,
+                "A1": 20,
+                "A2-T": 30,
+                "A2-G": 31,
+                "A3": 30,
+            }[configuration]
+        },
         "training": {"best_epoch": best_epoch},
         "validation": {
             "accuracy": accuracy,
@@ -90,6 +99,55 @@ class V2StatisticsTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "every formal run"):
             summarize_w2_results([failed], run_seeds=(1,))
+
+    def test_w3_summary_keeps_two_independent_paired_directions(self) -> None:
+        records = []
+        for seed, offset in ((1, 0.0), (2, 0.1)):
+            records.extend(
+                [
+                    _record(
+                        "A2-T",
+                        seed,
+                        accuracy=0.70 + offset,
+                        macro_f1=0.68 + offset,
+                        best_epoch=8,
+                    ),
+                    _record(
+                        "A2-G",
+                        seed,
+                        accuracy=0.65 + offset,
+                        macro_f1=0.63 + offset,
+                        best_epoch=9,
+                    ),
+                    _record(
+                        "A3",
+                        seed,
+                        accuracy=0.60 + offset,
+                        macro_f1=0.58 + offset,
+                        best_epoch=10,
+                    ),
+                ]
+            )
+
+        summary = summarize_w3_results(records, run_seeds=(1, 2))
+
+        self.assertEqual(summary["new_training_run_count"], 4)
+        self.assertEqual(
+            summary["aggregation_paired_delta"]["direction"],
+            "A2-T_minus_A2-G",
+        )
+        self.assertAlmostEqual(
+            summary["aggregation_paired_delta"]["validation_macro_f1"]["mean"],
+            0.05,
+        )
+        self.assertEqual(
+            summary["dropout_paired_delta"]["direction"],
+            "A2-T_p0.3_minus_A3_p0.0",
+        )
+        self.assertAlmostEqual(
+            summary["dropout_paired_delta"]["validation_macro_f1"]["mean"],
+            0.10,
+        )
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ from typing import Any
 
 
 W2_CONFIGURATIONS = ("A0", "A1")
+W3_CONFIGURATIONS = ("A2-T", "A2-G", "A3")
 
 
 def descriptive_summary(values: Sequence[float | int]) -> dict[str, float | int | None]:
@@ -27,12 +28,13 @@ def descriptive_summary(values: Sequence[float | int]) -> dict[str, float | int 
 def _completed_records_by_configuration(
     records: Sequence[Mapping[str, Any]],
     run_seeds: Sequence[int],
+    configurations: Sequence[str],
 ) -> dict[str, dict[int, Mapping[str, Any]]]:
     expected_seeds = tuple(run_seeds)
     if not expected_seeds or len(set(expected_seeds)) != len(expected_seeds):
         raise ValueError("run_seeds must be a non-empty unique sequence")
     grouped: dict[str, dict[int, Mapping[str, Any]]] = {
-        name: {} for name in W2_CONFIGURATIONS
+        name: {} for name in configurations
     }
     for record in records:
         if record.get("status") != "completed":
@@ -153,41 +155,66 @@ def _model_summary(
 def _paired_summary(
     grouped: Mapping[str, Mapping[int, Mapping[str, Any]]],
     run_seeds: Sequence[int],
+    *,
+    positive_configuration: str,
+    negative_configuration: str,
+    direction: str,
 ) -> dict[str, Any]:
     per_seed = []
     per_snr = []
     for run_seed in run_seeds:
-        a0_validation = _validation(grouped["A0"][run_seed])
-        a1_validation = _validation(grouped["A1"][run_seed])
+        positive_validation = _validation(grouped[positive_configuration][run_seed])
+        negative_validation = _validation(grouped[negative_configuration][run_seed])
         per_seed.append(
             {
                 "run_seed": run_seed,
                 "validation_accuracy": _finite_metric(
-                    a1_validation, "accuracy"
+                    positive_validation, "accuracy"
                 )
-                - _finite_metric(a0_validation, "accuracy"),
-                "validation_macro_f1": _finite_metric(a1_validation, "macro_f1")
-                - _finite_metric(a0_validation, "macro_f1"),
-                "best_epoch": int(_training(grouped["A1"][run_seed])["best_epoch"])
-                - int(_training(grouped["A0"][run_seed])["best_epoch"]),
+                - _finite_metric(negative_validation, "accuracy"),
+                "validation_macro_f1": _finite_metric(
+                    positive_validation, "macro_f1"
+                )
+                - _finite_metric(negative_validation, "macro_f1"),
+                "best_epoch": int(
+                    _training(grouped[positive_configuration][run_seed])["best_epoch"]
+                )
+                - int(
+                    _training(grouped[negative_configuration][run_seed])["best_epoch"]
+                ),
             }
         )
 
-    a0_snr_maps = [_snr_map(grouped["A0"][seed]) for seed in run_seeds]
-    a1_snr_maps = [_snr_map(grouped["A1"][seed]) for seed in run_seeds]
-    snr_values = tuple(sorted(a0_snr_maps[0]))
-    if any(tuple(sorted(values)) != snr_values for values in a0_snr_maps + a1_snr_maps):
+    negative_snr_maps = [
+        _snr_map(grouped[negative_configuration][seed]) for seed in run_seeds
+    ]
+    positive_snr_maps = [
+        _snr_map(grouped[positive_configuration][seed]) for seed in run_seeds
+    ]
+    snr_values = tuple(sorted(negative_snr_maps[0]))
+    if any(
+        tuple(sorted(values)) != snr_values
+        for values in negative_snr_maps + positive_snr_maps
+    ):
         raise ValueError("paired runs do not share identical SNR levels")
     for snr in snr_values:
         accuracy_deltas = [
-            _finite_metric(a1_values[snr], "accuracy")
-            - _finite_metric(a0_values[snr], "accuracy")
-            for a0_values, a1_values in zip(a0_snr_maps, a1_snr_maps, strict=True)
+            _finite_metric(positive_values[snr], "accuracy")
+            - _finite_metric(negative_values[snr], "accuracy")
+            for negative_values, positive_values in zip(
+                negative_snr_maps,
+                positive_snr_maps,
+                strict=True,
+            )
         ]
         macro_f1_deltas = [
-            _finite_metric(a1_values[snr], "macro_f1")
-            - _finite_metric(a0_values[snr], "macro_f1")
-            for a0_values, a1_values in zip(a0_snr_maps, a1_snr_maps, strict=True)
+            _finite_metric(positive_values[snr], "macro_f1")
+            - _finite_metric(negative_values[snr], "macro_f1")
+            for negative_values, positive_values in zip(
+                negative_snr_maps,
+                positive_snr_maps,
+                strict=True,
+            )
         ]
         per_snr.append(
             {
@@ -198,7 +225,7 @@ def _paired_summary(
         )
 
     return {
-        "direction": "A1_minus_A0",
+        "direction": direction,
         "n_pairs": len(per_seed),
         "per_seed": per_seed,
         "validation_accuracy": descriptive_summary(
@@ -219,7 +246,11 @@ def summarize_w2_results(
 ) -> dict[str, Any]:
     """Summarize all A0/A1 runs without selecting a best seed."""
 
-    grouped = _completed_records_by_configuration(records, run_seeds)
+    grouped = _completed_records_by_configuration(
+        records,
+        run_seeds,
+        W2_CONFIGURATIONS,
+    )
     return {
         "schema_version": "wireless-v2-w2-summary-v1",
         "stage": "W2",
@@ -231,9 +262,61 @@ def summarize_w2_results(
             configuration: _model_summary(grouped[configuration], run_seeds)
             for configuration in W2_CONFIGURATIONS
         },
-        "paired_delta": _paired_summary(grouped, run_seeds),
+        "paired_delta": _paired_summary(
+            grouped,
+            run_seeds,
+            positive_configuration="A1",
+            negative_configuration="A0",
+            direction="A1_minus_A0",
+        ),
         "interpretation_limit": (
             "Five seeds support descriptive mean/sample-std and paired deltas only; "
             "they do not establish statistical significance."
+        ),
+    }
+
+
+def summarize_w3_results(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    run_seeds: Sequence[int],
+) -> dict[str, Any]:
+    """Summarize reused A2-T and new A2-G/A3 ablation runs."""
+
+    grouped = _completed_records_by_configuration(
+        records,
+        run_seeds,
+        W3_CONFIGURATIONS,
+    )
+    return {
+        "schema_version": "wireless-v2-w3-summary-v1",
+        "stage": "W3",
+        "scope": "fixed_validation_only",
+        "test_set_used": False,
+        "run_seeds": list(run_seeds),
+        "record_count": len(records),
+        "reused_a2t_run_count": len(run_seeds),
+        "new_training_run_count": len(run_seeds) * 2,
+        "models": {
+            configuration: _model_summary(grouped[configuration], run_seeds)
+            for configuration in W3_CONFIGURATIONS
+        },
+        "aggregation_paired_delta": _paired_summary(
+            grouped,
+            run_seeds,
+            positive_configuration="A2-T",
+            negative_configuration="A2-G",
+            direction="A2-T_minus_A2-G",
+        ),
+        "dropout_paired_delta": _paired_summary(
+            grouped,
+            run_seeds,
+            positive_configuration="A2-T",
+            negative_configuration="A3",
+            direction="A2-T_p0.3_minus_A3_p0.0",
+        ),
+        "interpretation_limit": (
+            "A2 is a shared-backbone, near-parameter-budget comparison rather than "
+            "a strict single-variable experiment. Five seeds are descriptive only."
         ),
     }
