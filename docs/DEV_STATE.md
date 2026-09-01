@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-- 当前阶段：W4 · run manifest、报告、README与复现验收（已获用户授权）
+- 当前阶段：W4 · run manifest、报告、README与复现验收（开发已完成，⑤待完成）
 - 真实开工日期：2026-08-31
 - ⑤ 拥有权验证：未完成
 - 已完成阶段：W0、W1、W2、W3
@@ -46,6 +46,17 @@
 - 10次运行全部成功，零失败、零重跑、零seed替换；原始JSON、best checkpoint、初始化backbone、矩阵锁与汇总保存在`experiments/v2/w3/`。
 - W3实现提交`596900a`早于全部正式结果；原始JSON提交`a4cd7ea`，checkpoint和初始backbone提交`3d68864`。
 - 全部W3指标都是固定validation开发结果；未创建test DataLoader、未运行V1 test推理，也未把历史test指标加入汇总。
+
+### W4
+
+- 从W2/W3已提交的20条原始运行记录生成20份单次run manifest和1份catalog；覆盖A0、A1、A2-G、A3各五个预注册seed。
+- 每份manifest冻结数据与split哈希、run seed、模型、训练配置、优化器、历史环境、实现commit、原始JSON/checkpoint哈希、协议和依赖规格哈希。
+- 新增单次复现入口，默认只做文件与数据SHA-256审计并打印命令；只有显式`--execute`才训练，且只创建train/validation DataLoader、拒绝覆盖已有输出。
+- 从catalog任取A2-G/20260901执行dry-run成功：6项仓库文件哈希和数据SHA-256匹配，成功重建单次执行命令；没有反序列化数据、没有训练、没有访问V1 test。
+- 新增`docs/V2_CORE_REPORT.md`，保留20条原始结果、mean±sample std、paired delta、参数/MACs、SNR、典型混淆、技术判断和限制。
+- README已明确区分V2固定validation结果与V1一次性历史test，修正checkpoint与manifest已经随仓库保存的证据范围，并增加核心技术取舍清单。
+- W4实现提交`7c155eb`早于manifest产物；manifest catalog提交`3f91fcb`；catalog完整性测试提交`8f67949`。
+- W4没有重新训练、没有产生或修改模型指标、没有读取V1 test信号/标签或执行推理。
 
 ## W2 描述性结果
 
@@ -91,13 +102,11 @@
 
 ## 未决问题
 
-- W3 开发、训练和产物验收没有阻塞项；⑤拥有权验证仍为“未完成”，因此W4尚未开始。
+- W4开发和复现验收没有阻塞项；⑤拥有权验证仍为“未完成”，完成前Wireless V2 Core不正式关闭。
 - 独立 `.venv` 没有第三方 `pytest`，但仓库测试实际使用 Python 标准库 `unittest`；无需安装依赖即可执行。W1 完整回归共 96 项。
 - `compileall` 额外检查因现有 `__pycache__` 写权限被系统拒绝，未作为通过项；96 项测试已经实际导入并执行全部新增模块。
 
-## 下一阶段入口条件
-
-只有同时满足以下条件，才能由用户明确下令开始 W4：
+## W4最终关闭条件
 
 1. [x] A2-G/A3各五个预注册seed全部运行，A2-T只复用W2结果；
 2. [x] 两组同seed配对均完整，`n_pairs=5`；
@@ -105,8 +114,13 @@
 4. [x] 10个新checkpoint及5个初始backbone哈希匹配、可加载；
 5. [x] W3产物完整性测试及127项全量离线测试通过；
 6. [x] W3学习交接包及三道就业面试题标准答案已写入`docs/W3_LEARNING_HANDOFF.md`；
-7. [ ] 用户完成W3学习确认，本文件的W3“⑤拥有权验证”改为“已完成”；
-8. [ ] 用户在第7项完成后明确下令开始W4。
+7. [x] 用户完成W3学习确认，本文件的W3“⑤拥有权验证”改为“已完成”；
+8. [x] 用户在第7项完成后明确下令开始W4；
+9. [x] 20份run manifest及catalog的哈希和依赖完整性检查通过；
+10. [x] 任取一次历史运行，仅凭manifest完成数据/文件审计并重建单次启动命令；
+11. [x] V2 Core技术报告和README按validation/test边界更新；
+12. [x] 135项全量离线测试通过；
+13. [ ] 用户完成W4学习确认，本文件的W4“⑤拥有权验证”改为“已完成”。
 
 ## W0 ⑤拥有权验证记录
 
@@ -137,6 +151,12 @@
 - 已提供三道就业面试相关源码题及标准答案，不要求用户盲猜，也不要求亲手修改代码。
 - 用户已明确确认学习完成并下令继续；相关标准答案保存在`docs/W3_LEARNING_HANDOFF.md`。
 
+## W4 ⑤拥有权验证记录
+
+- 状态：未完成。
+- 已提供三道就业面试相关源码题及标准答案，不要求用户盲猜，也不要求亲手修改代码。
+- 用户确认完成W4学习后，才把本项和文件顶部⑤更新为“已完成”，并正式冻结Wireless V2 Core。
+
 ## 环境与依赖变更
 
 - W0 未安装、升级或删除任何依赖。
@@ -151,6 +171,9 @@
 - W3未安装、升级或删除依赖；使用同一RTX 4060 Laptop GPU完成10次新增正式训练。
 - W3没有访问V1 test信号、标签或模型指标；10次新评测和5次复用结果全部来自固定validation。
 - W3测试命令：`.venv\Scripts\python.exe -m unittest discover -s tests -v`，结果为127项全部通过；其中4项会重算W3汇总、逐个加载10个新checkpoint并核对5个共享初始backbone。
+- W4未安装、升级或删除依赖；未重新训练、未生成新指标、未访问V1 test信号或标签。
+- W4使用一份代表性manifest执行dry-run，仅对数据文件计算SHA-256，不反序列化信号；结果为`ready_for_explicit_execute=true`，但没有使用`--execute`。
+- W4测试命令：`.venv\Scripts\python.exe -m unittest discover -s tests -v`，结果为135项全部通过；新增测试验证20份manifest的catalog覆盖、文件哈希、依赖哈希和命令重建。
 
 ## 给接手者的上下文
 
@@ -165,3 +188,5 @@
 - W2结果说明A1在当前五个seed和固定validation下方向一致地高于A0，但不能据此宣称统计显著、真实空口泛化或所有信道条件下普遍更优。
 - W3两条消融均未形成足够稳定的新优势：A2-G只取得小于波动的平均差异，A3均值更低且波动更大；默认仍保留A1/A2-T，不为追求“新模型”强行promote变体。
 - W4只能整理run manifest、汇总报告、README和复现验收，不得借整理阶段重新训练、补挑seed或重开V1 test。
+- W4已完成上述限定范围；后续若从manifest显式重训，必须使用新输出目录并作为复现运行记录，不能覆盖W2/W3正式JSON或checkpoint。
+- `requirements-gpu.txt`和`pyproject.toml`固定顶层依赖，manifest记录实际历史运行环境；这不是包含驱动和全部传递依赖的容器镜像，因此“可重启、可审计”不等于任意机器逐位一致。

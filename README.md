@@ -1,35 +1,102 @@
 # Wireless Signal Modulation Classification
 
-基于 PyTorch 的无线信号自动调制识别与 SNR 鲁棒性评估。
+基于PyTorch和RadioML 2016.10A的无线信号自动调制识别项目，重点展示固定数据边界、多随机种子成对实验、容量受控消融、SNR错误分析和可审计复现。
 
-## 当前阶段
+## 当前状态
 
-项目处于 Phase 15：封存测试集最终验收。第一版SimpleCNN在33,000条验证集上取得40.89% Accuracy和38.20% Macro F1；只改变模型结构后，TemporalCNN验证集达到56.35% Accuracy和56.23% Macro F1，分别提高15.46和18.03个百分点。两次实验使用相同的154,000条训练集、数据划分、随机种子和训练配置。
+V2 Core开发与复现验收已完成，等待W4学习交接确认后正式冻结。项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。
 
-模型与评估协议冻结后，首次在33,000条封存测试样本上进行最终验收，取得56.38% Accuracy和56.26% Macro F1。测试成绩没有用于继续调参。公开仓库保存了冻结协议、模型与结果哈希、指标摘要、混淆矩阵和按SNR图表；受数据许可与文件大小限制，原始数据、模型检查点和生成的运行时产物不随仓库分发。
+V2正式运行包含4个配置×5个预注册run seed：
 
-![SimpleCNN与TemporalCNN的验证集SNR曲线](docs/images/phase13/validation_accuracy_by_snr.svg)
+- A0：SimpleCNN；
+- A1/A2-T：保留8个粗粒度时序分箱的TemporalCNN；
+- A2-G：共享TemporalCNN backbone、改用全局池化和容量受控head；
+- A3：仅把A1的Dropout从`p=0.3`改为`p=0`。
 
-![TemporalCNN验证集混淆矩阵](docs/images/phase13/temporal_cnn_confusion_matrix.svg)
+所有原始JSON、best checkpoint、初始化backbone、汇总和20份run manifest均已提交。135项离线自动化测试通过。
 
-![TemporalCNN最终测试集SNR曲线](docs/images/final_test/final_test_accuracy_by_snr.svg)
+## V2 Core结果
 
-![TemporalCNN最终测试集混淆矩阵](docs/images/final_test/final_test_confusion_matrix.svg)
+下表全部是固定validation上的五seed `mean ± sample std`，不是新的test成绩，也不表示统计显著性。
 
-已验证环境：Python 3.12.10、PyTorch 2.12.1+cu130、NumPy 2.5.2、RTX 4060 Laptop GPU。
+| 配置 | Validation Accuracy | Validation Macro F1 | 参数量 | 技术判断 |
+|---|---:|---:|---:|---|
+| A0 SimpleCNN | 42.26% ± 2.08 pp | 40.24% ± 2.52 pp | 11,499 | 教学基线 |
+| A1/A2-T TemporalCNN | 54.81% ± 0.64 pp | 55.47% ± 1.05 pp | 224,587 | 当前默认模型 |
+| A2-G 全局池化 | 55.00% ± 0.63 pp | 55.73% ± 0.64 pp | 224,559 | 差异小于波动，不promote |
+| A3 无Dropout | 53.91% ± 2.30 pp | 54.40% ± 3.13 pp | 224,587 | 均值下降、波动增大，不promote |
 
-## 项目亮点
+主要成对结果：
 
-- 对旧Pickle数据采用受限加载、归档审计、SHA-256和结构校验，降低不可信反序列化风险；
-- 按“调制方式 + SNR”分层执行70%/15%/15%划分，固定随机种子并检查集合互斥；
-- 用PyTorch实现完整训练循环、最佳检查点、早停、Accuracy、Macro F1、混淆矩阵和按SNR评估；
-- 在其余实验条件不变时，将全局平均基线替换为保留8段时序特征的TemporalCNN；
-- 在读取测试指标前冻结模型哈希和评估协议，避免测试集参与模型选择；
-- 84项自动化测试覆盖数据、模型、训练、指标、结果图表和最终评估保护。
+- `A1−A0` Macro F1 paired delta：`+15.23 ± 3.35`个百分点，`n_pairs=5`，五个seed方向全部为正；
+- `A2-T−A2-G` Macro F1 paired delta：`-0.25 ± 1.38`个百分点，方向不一致；
+- `A2-T(p=0.3)−A3(p=0)` Macro F1 paired delta：`+1.08 ± 3.54`个百分点，方向不完全一致。
 
-## 快速开始
+安全结论是保留A1/A2-T。A2-G的平均分略高，但约`0.25`个百分点的差异小于跨seed波动，不能包装成稳定提升；移除Dropout也没有得到可靠收益。
 
-项目使用Python 3.12。CPU环境可以创建独立虚拟环境后安装项目：
+完整原始结果、per-SNR数据、参数/MACs、延迟、限制和证据哈希见[`docs/V2_CORE_REPORT.md`](docs/V2_CORE_REPORT.md)。
+
+## 核心技术取舍清单
+
+1. **固定数据身份，不重新洗牌制造“新test”**：V2沿用V1 train/validation边界；同一RadioML归档内部重新切分不能冒充真正独立测试证据。
+2. **分离`split_seed`与`run_seed`**：`split_seed=20260812`只决定固定索引；五个`run_seed`只控制模型初始化、Dropout和训练batch顺序。
+3. **结果产生前预注册seed和矩阵**：Git提交早于正式结果，避免看到成绩后挑seed、删失败运行或改变比较规则。
+4. **跨模型看Macro F1 mean±sample std和paired delta**：不使用单次最高Accuracy选择模型；五个seed只做描述性统计。
+5. **A2只称容量受控比较**：A2-T/A2-G共享backbone且全模型参数只差28个，但head函数结构不同，不能称严格单变量实验。
+6. **不为“新模型”强行promote**：A2-G没有稳定优势，A3无Dropout没有可靠收益，因此默认仍保留A1/A2-T。
+7. **区分理论计算量和真实延迟**：参数量/MACs是确定性结构量；延迟受硬件、算子和运行环境影响。
+8. **manifest保证可审计，不夸大为绝对复现**：运行身份、配置、环境和文件哈希可以重建；跨硬件bitwise一致不作保证。
+
+## 项目能力范围
+
+项目能够证明：
+
+- NumPy/PyTorch数据处理、Dataset与DataLoader；
+- `(B,2,128)` I/Q序列上的Conv1d模型和Tensor shape管理；
+- CrossEntropy、backward、Adam、validation、early stopping和best checkpoint；
+- Accuracy、Macro F1、混淆矩阵、per-SNR指标；
+- 固定分层划分、数据泄漏边界和测试集纪律；
+- 多seed成对实验、sample std、controlled ablation；
+- 参数量、MACs/FLOPs和固定硬件推理延迟分析；
+- 原始实验产物、哈希、run manifest、自动化测试和CI。
+
+项目不能证明：
+
+- 真实空口、生产部署或跨设备泛化；
+- SOTA、统计显著的算法创新或研究型新模型；
+- Transformer、强化学习或大型网络经验；
+- V2新的独立最终test成绩。
+
+## 数据与边界
+
+RadioML 2016.10A包含220,000条样本、11种调制方式和20个SNR条件。单条样本是`(2,128)`：2表示I/Q两个通道，128表示时间采样点。
+
+固定分层划分：
+
+| split | 样本数 | V2用途 |
+|---|---:|---|
+| train | 154,000 | 梯度更新 |
+| validation | 33,000 | early stopping、模型比较、消融和错误分析 |
+| V1 test | 33,000 | 仅保留历史一次性验收；V2禁止重新使用 |
+
+- 数据SHA-256：`b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c`；
+- split manifest SHA-256：`48ad195d5552e3ec4e5a6d1bc4fc0f20099df8dc70f8eb78a80df95e7f5297a7`；
+- 分层单元：modulation×SNR，共220个，每单元`700/150/150`；
+- V2开发入口不返回test索引、Subset或DataLoader。
+
+RadioML 2016.10A来自[DeepSig官方数据页面](https://www.deepsig.ai/datasets/)，许可为CC BY-NC-SA 4.0。仓库MIT许可证只覆盖本项目代码，不改变数据集许可证。仓库不重新分发原始数据；使用者需从官方渠道取得数据，并放置为：
+
+```text
+data/raw/RML2016.10a/RML2016.10a_dict.pkl
+```
+
+安全加载、归档审计和已知限制见[`docs/DATASET_AUDIT.md`](docs/DATASET_AUDIT.md)。不要对来源不明的Pickle直接调用普通`pickle.load`。
+
+## 环境安装
+
+已验证正式实验环境：Python 3.12.10、NumPy 2.5.2、PyTorch 2.12.1+cu130、CUDA 13.0、cuDNN 9.2、NVIDIA GeForce RTX 4060 Laptop GPU。
+
+CPU环境：
 
 ```powershell
 python -m venv .venv
@@ -37,7 +104,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 ```
 
-Windows + NVIDIA GPU环境可以根据已验证配置安装PyTorch CUDA wheel：
+Windows + NVIDIA GPU环境：
 
 ```powershell
 python -m venv .venv
@@ -46,96 +113,103 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e . --no-deps
 ```
 
-运行全部离线测试不需要RadioML数据集、GPU或API密钥：
+顶层依赖已固定版本；manifest还保存了实际Python、NumPy、PyTorch、CUDA、cuDNN、GPU和依赖规格文件哈希。它不是包含驱动与全部传递依赖的跨平台容器镜像，因此不承诺任意机器逐位相同。
+
+## 自动化测试与CI
+
+全部135项离线测试不需要RadioML数据、GPU或API密钥：
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-## 数据准备
+GitHub Actions在Python 3.12上安装项目、运行同一套离线测试，并解析全部Python源码。产物测试会重算W2/W3汇总、加载checkpoint、核对初始化backbone以及验证20份manifest的依赖和历史文件哈希。
 
-RadioML 2016.10A来自[DeepSig官方数据页面](https://www.deepsig.ai/datasets/)，数据许可为CC BY-NC-SA 4.0。仓库采用MIT许可证只覆盖本项目代码，不改变数据集许可证。
+## 从run manifest复现一次历史运行
 
-仓库不重新分发数据。完成官方登记和下载后，先保留原始压缩包并执行只读审计，再将官方Pickle放在Git忽略的目录：
+[`experiments/v2/run_manifests/catalog.json`](experiments/v2/run_manifests/catalog.json)登记了4个配置×5个seed共20次历史运行。每份manifest包含数据、split、seed、训练配置、优化器、环境、Git commit、原始JSON、checkpoint和依赖哈希。
+
+先做安全dry-run：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\replay_v2_run.py `
+  experiments\v2\run_manifests\w3-a2-g-20260901.json `
+  --data-file data\raw\RML2016.10a\RML2016.10a_dict.pkl `
+  --output-directory artifacts\replay\w3-a2-g-20260901
+```
+
+dry-run只验证哈希并打印可执行命令，不反序列化数据、不训练、不访问V1 test。
+
+确实需要重新训练时，检查预计GPU时间和磁盘空间，然后在新输出目录上显式增加：
 
 ```text
-data/raw/RML2016.10a/RML2016.10a_dict.pkl
+--execute
 ```
 
-数据集安全检查、已验证SHA-256和已知限制见[`docs/DATASET_AUDIT.md`](docs/DATASET_AUDIT.md)。不要对来源不明的Pickle文件直接调用普通`pickle.load`。
+脚本只重新拉起manifest指定的单个配置和单个seed。它仍只创建train/validation DataLoader；输出目录已存在时拒绝覆盖。本仓库W4验收只执行了dry-run，没有重新训练。
 
-## 公开证据范围
+## 训练与评测链路
 
-仓库可直接审查训练与评估代码、自动化测试、最终启封协议、检查点和结果哈希、指标摘要及SVG图表。`data/raw/`、PyTorch检查点和`artifacts/`生成目录由Git忽略，不属于公开交付物。复现实验需要使用者从DeepSig官方渠道取得数据并重新训练；README中的结果是本项目已完成实验的记录，不代表克隆仓库后已经包含训练好的模型。
-
-## 复现实验
-
-以下命令中的输出目录必须为空，脚本会拒绝覆盖已有实验：
-
-```powershell
-# 原始SimpleCNN基线
-.\.venv\Scripts\python.exe scripts\train_radioml_baseline.py `
-  data\raw\RML2016.10a\RML2016.10a_dict.pkl `
-  artifacts\simple_cnn_baseline `
-  --model-variant simple
-
-# 受控TemporalCNN候选实验
-.\.venv\Scripts\python.exe scripts\train_radioml_baseline.py `
-  data\raw\RML2016.10a\RML2016.10a_dict.pkl `
-  artifacts\temporal_cnn_candidate `
-  --model-variant temporal
+```text
+RadioML Pickle + SHA-256
+-> restricted loader / schema audit
+-> frozen split manifest
+-> train/validation Dataset
+-> seeded DataLoader
+-> CNN forward: (B,2,128) -> logits (B,11)
+-> CrossEntropy
+-> zero_grad -> backward -> Adam step
+-> validation loss
+-> early stopping / best checkpoint
+-> fixed-validation Accuracy + Macro F1
+-> confusion matrix + per-SNR
+-> raw JSON + checkpoint hash + run manifest
 ```
 
-生成验证集图表：
+## V1一次性历史验收
 
-```powershell
-.\.venv\Scripts\python.exe scripts\generate_validation_figures.py `
-  artifacts\simple_cnn_baseline\validation_result.json `
-  artifacts\temporal_cnn_candidate\validation_result.json `
-  artifacts\validation_figures
-```
+V1在模型与协议冻结后曾对33,000条test执行一次最终验收：
 
-`evaluate_frozen_test_set.py`绑定本项目最终候选检查点、数据集哈希和第13轮选择结果，只用于审计记录中的一次最终验收。开发新模型时不能重复使用当前测试成绩调参；应重新建立新的未见测试集。
+| 历史模型/范围 | Accuracy | Macro F1 |
+|---|---:|---:|
+| V1 SimpleCNN validation | 40.89% | 38.20% |
+| V1 TemporalCNN validation | 56.35% | 56.23% |
+| V1 TemporalCNN一次性历史test | 56.38% | 56.26% |
 
-## 最终结果与边界
+V1 test结果没有用于当时继续调参，但test已经启封，因此V2禁止重新用它选择模型。V2的五seedvalidation结果与V1历史test结果必须分开表述。
 
-| 模型/数据范围 | Accuracy | Macro F1 |
-| --- | ---: | ---: |
-| SimpleCNN验证集 | 40.89% | 38.20% |
-| TemporalCNN验证集 | 56.35% | 56.23% |
-| TemporalCNN封存测试集 | **56.38%** | **56.26%** |
+![V1 TemporalCNN历史test SNR曲线](docs/images/final_test/final_test_accuracy_by_snr.svg)
 
-最终总体指标包含11种调制方式和-20 dB至18 dB全部SNR条件。0 dB以上测试准确率约79%–83%，但极低SNR接近随机水平，QAM16 Recall只有4.07%。项目结果只能说明该方法在RadioML 2016.10A同分布数据上的表现，不能直接外推至真实空口环境。
+![V1 TemporalCNN历史test混淆矩阵](docs/images/final_test/final_test_confusion_matrix.svg)
 
-## V1 目标
+## 结果限制
 
-- 读取并检查带有调制类别和 SNR 标签的 I/Q 信号数据。
-- 建立可复现的训练集、验证集和测试集划分。
-- 先实现简单基线，再实现小型 1D CNN。
-- 使用 Accuracy、Precision、Recall、F1、混淆矩阵和按 SNR 分组的准确率评估模型。
-- 进行一次范围受控的改进实验，并如实记录有效和无效结果。
-- 提供可复现的配置、测试、文档和运行说明。
-
-## 暂不包含
-
-- Transformer、GAN、强化学习或大型模型。
-- 前端、在线服务和复杂部署。
-- 真实空口生产数据采集。
-- 未经验证的性能结论。
+- 极低SNR接近11分类机会水平；A2-T在`-20 dB`的五seed平均Accuracy约9.28%；
+- A2-T在`0 dB`及以上平均Accuracy约77%–82%，但仍存在QAM16/QAM64和WBFM/AM-DSB等混淆；
+- 所有V2结果只适用于RadioML 2016.10A固定validation和五个预注册seed；
+- 没有真实空口、外部独立数据或生产服务结论；
+- 参数量接近不等于函数表达能力相同；
+- 五个seed不支持统计显著性结论。
 
 ## 目录
 
 ```text
-src/signal_modulation/   核心 Python 包
-tests/                   自动化测试
-data/                    数据说明；原始数据不提交 Git
-artifacts/               模型、图表和实验输出；大文件不提交 Git
-docs/                    范围、设计和学习记录
-scripts/                 环境、数据和训练演示脚本
-.github/workflows/       无真实数据依赖的持续集成
+src/signal_modulation/        核心数据、模型、训练、统计与manifest代码
+scripts/                      审计、训练、报告和单次manifest复现入口
+tests/                        135项离线自动化测试
+manifests/v2/                 固定split manifest与索引
+experiments/v2/w2/            A0/A1五seed原始JSON与checkpoint
+experiments/v2/w3/            A2-G/A3结果、共享初始backbone与W3汇总
+experiments/v2/run_manifests/ 20份单次运行manifest与catalog
+docs/                         协议、技术报告、开发状态和学习材料
+data/                         原始数据不提交Git
+artifacts/                    临时重放和本地运行输出，不覆盖正式产物
+.github/workflows/            离线CI
 ```
 
-学习顺序：
+## 学习路径
+
+基础链路：
 
 1. `docs/LEARNING_01_IQ_SNR.md`
 2. `docs/LEARNING_02_DATA_SPLIT.md`
@@ -147,10 +221,20 @@ scripts/                 环境、数据和训练演示脚本
 8. `docs/LEARNING_08_RADIOML_DATALOADER.md`
 9. `docs/LEARNING_09_SMOKE_TRAINING.md`
 10. `docs/LEARNING_10_EVALUATION_METRICS.md`
-11. `docs/LEARNING_11_FULL_BASELINE_PLAN.md`
-12. `docs/LEARNING_12_BASELINE_RESULT.md`
-13. `docs/LEARNING_13_TEMPORAL_CNN_COMPARISON.md`
-14. `docs/FINAL_EVALUATION_PROTOCOL.md`
-15. `docs/LEARNING_14_FINAL_TEST_RESULT.md`
 
-模型开发、最终测试和本地工程交付闭环已经完成。项目使用独立Git仓库和无真实数据依赖的CI配置；发布到GitHub后可直接运行离线测试。当前模型不再根据已启封测试集调整。
+V2重点：
+
+- [`docs/v2_protocol.md`](docs/v2_protocol.md)：冻结协议；
+- [`docs/W2_LEARNING_HANDOFF.md`](docs/W2_LEARNING_HANDOFF.md)：多seed成对实验；
+- [`docs/W3_LEARNING_HANDOFF.md`](docs/W3_LEARNING_HANDOFF.md)：容量受控消融；
+- [`docs/V2_CORE_REPORT.md`](docs/V2_CORE_REPORT.md)：完整结果与限制；
+- [`docs/DEV_STATE.md`](docs/DEV_STATE.md)：阶段、证据和决策记录。
+
+## 暂不包含
+
+- Transformer、强化学习或大型网络；
+- GNU Radio外部集或真实空口采集；
+- Web服务、实验数据库、仪表盘或模型注册服务；
+- 未经独立数据验证的泛化和性能宣传。
+
+未来P1若继续，优先使用预先冻结的独立生成或独立来源数据验证域外鲁棒性；在此之前不继续查看V1 test，也不为了刷一次最高分扩大模型复杂度。
