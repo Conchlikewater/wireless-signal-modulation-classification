@@ -164,6 +164,8 @@ A2-T在代表性SNR上的五seed均值：
 
 默认只校验数据和仓库文件哈希并打印重启命令，不训练。只有显式添加`--execute`才会重新训练该manifest对应的单次运行；输出目录必须不存在。
 
+发布纠错阶段在执行前提交`docs/REPLAY_REPRODUCTION_PROTOCOL.md`，冻结Accuracy和Macro F1绝对差值均不超过`1.0`个百分点的规则，随后只执行一次A3/20260901 replay。结果的best epoch、Accuracy、Macro F1、best validation loss和checkpoint SHA-256均与历史完全一致，`test_set_used=false`。独立记录位于`artifacts/replay/w3-a3-20260901/REPRODUCTION.md`。
+
 复现不等于保证跨机器逐位一致。manifest记录并检查环境，PyTorch确定性设置也已启用，但驱动、硬件、底层算子或未来软件版本仍可能造成数值差异。因此验收目标是“运行身份和过程可审计、条件可重建”，不是承诺任意机器上的bitwise identical。
 
 ## 9. 证据索引
@@ -175,7 +177,7 @@ A2-T在代表性SNR上的五seed均值：
 - manifest catalog：`experiments/v2/run_manifests/catalog.json`，已登记A3勘误；
 - 原始JSON和best checkpoint：`experiments/v2/w2/`、`experiments/v2/w3/`；
 - 自动化测试：当前140项离线`unittest`全部通过；新增语义测试直接检查各arm的`nn.Dropout.p`，并验证67个受保护历史产物仍与纠错前基线字节一致；
-- W4没有重新训练、没有产生新模型指标，也没有访问V1 test信号、标签或推理结果。
+- W4本身没有重新训练；发布纠错阶段完成一次A3训练级replay。两阶段均未访问V1 test信号、标签或推理结果。
 
 原冻结审计的撤销原因、Git边界、远端同步状态和后续范围见`docs/FINAL_FREEZE_AUDIT.md`。
 

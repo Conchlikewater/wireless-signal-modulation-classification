@@ -14,7 +14,8 @@
 - A-1已完成：新增`experiments/v2/w3/A3/ERRATA.json`，声明5个A3运行的`config.dropout`记录值为`0.3`、实际effective值为`0.0`；20份历史JSON、20个checkpoint、5个初始backbone、2份summary和20份run manifest共67个文件保持纠错前字节不变。
 - A-2已完成：配置语义测试通过实际模型工厂遍历`nn.Dropout.p`；临时把effective值改错为`0.3`时，5个A3 seed全部出现`[0.0] != [0.3]`失败，恢复后当前140项完整测试通过。
 - A-3已完成：README、技术报告、原冻结审计和本状态文件撤销“最终冻结通过/无P0阻塞项”表述。
-- A-4训练级单次复现、A-5 validation乐观偏差声明及纠正版发布尚未完成。
+- A-4已完成：阈值先提交，再执行一次A3/20260901 replay；Accuracy、Macro F1、best epoch、best loss和checkpoint SHA均与历史一致，`test_set_used=false`。
+- A-5 validation乐观偏差声明及纠正版发布尚未完成。
 
 ### W0
 
@@ -109,7 +110,7 @@
 
 ## 未决问题
 
-- 当前阻塞纠正版发布：A3训练级单次复现尚未执行，validation同集选择偏差声明尚未补齐，纠正版最终审计与远端CI尚未完成。
+- 当前阻塞纠正版发布：validation同集选择偏差声明尚未补齐，纠正版最终审计与远端CI尚未完成。
 - 当前`main`的V2提交尚未推送到`origin/main`；远端仍停在V1提交`f9668db`。这不影响本地证据，但意味着远端备份和远端CI尚未覆盖V2。
 - V1历史56.38% test结果仍只有历史文档与图表，原V1 checkpoint和JSON不在当前`artifacts/`；因此它只能作为历史记录，不能声称当前可独立重算。V2的20次validation运行不受此问题影响，其JSON和checkpoint均已提交并通过哈希测试。
 - V2 Core没有新的独立test、真实空口数据或跨域结果；这些是明确的能力边界，不是本次实现遗漏。

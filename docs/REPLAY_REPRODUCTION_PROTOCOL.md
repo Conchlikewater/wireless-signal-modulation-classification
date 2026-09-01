@@ -1,7 +1,7 @@
 # A3 单次训练级复现协议
 
 > 冻结时间：2026-09-02，正式 replay 执行之前  
-> 状态：阈值已预注册，尚未执行
+> 状态：阈值先于执行提交；单次 replay 已完成并通过
 
 ## 1. 固定运行身份
 
@@ -41,3 +41,17 @@
 - replay只写新目录，不覆盖W3历史JSON或checkpoint；
 - `REPRODUCTION.md`记录历史值、replay值、逐项差值和最终判定；
 - 本协议提交必须早于replay产物和结论提交。
+
+## 5. 执行结果
+
+- 执行实现commit：`370e6f70a300c8408c910acc9cf2b53123b27b66`
+- best epoch：`6`，差值`0`
+- validation Accuracy：`55.172727%`，差值`0.000000`个百分点
+- validation Macro F1：`56.420482%`，差值`0.000000`个百分点
+- best validation loss：`1.1784395901`，差值`0`
+- replay checkpoint SHA-256：`6730fa44397b179f337660db8ff18c3d8b79057ffdb58375f3511f760777ffaf`，与历史checkpoint一致
+- replay耗时：`51.6323`秒；历史耗时：`40.8266`秒。耗时不属于精度验收阈值，也不据此宣称稳定速度
+- `test_set_used=false`
+- 验收结论：Accuracy和Macro F1均在预注册`±1.0`个百分点阈值内，本次同机训练级复现通过
+
+详细独立记录见`artifacts/replay/w3-a3-20260901/REPRODUCTION.md`。

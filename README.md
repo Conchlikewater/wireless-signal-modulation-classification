@@ -148,7 +148,7 @@ dry-run只验证哈希并打印可执行命令，不反序列化数据、不训�
 --execute
 ```
 
-脚本只重新拉起manifest指定的单个配置和单个seed。它仍只创建train/validation DataLoader；输出目录已存在时拒绝覆盖。本仓库W4验收只执行了dry-run，没有重新训练。
+脚本只重新拉起manifest指定的单个配置和单个seed。它仍只创建train/validation DataLoader；输出目录已存在时拒绝覆盖。W4当时只执行dry-run；发布纠错阶段随后按预注册`±1.0`个百分点阈值执行了一次A3/20260901训练级replay，Accuracy、Macro F1、best epoch、loss和checkpoint SHA均与历史一致。记录见[`artifacts/replay/w3-a3-20260901/REPRODUCTION.md`](artifacts/replay/w3-a3-20260901/REPRODUCTION.md)。
 
 ## 训练与评测链路
 
