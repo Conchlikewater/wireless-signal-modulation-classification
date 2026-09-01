@@ -1,5 +1,19 @@
 {
   "created_at_utc": "2026-09-01T01:13:18.430090+00:00",
+  "errata": [
+    {
+      "affected_runs": [
+        "w3-a3-20260901",
+        "w3-a3-20260902",
+        "w3-a3-20260903",
+        "w3-a3-20260904",
+        "w3-a3-20260905"
+      ],
+      "errata_file": "experiments/v2/w3/A3/ERRATA.json",
+      "errata_sha256": "e148281a2f1c2030b1b0fbdd2f688b9555dba71385c633d51e80bc8a685cfb28",
+      "field": "config.dropout"
+    }
+  ],
   "records": [
     {
       "configuration": "A0",

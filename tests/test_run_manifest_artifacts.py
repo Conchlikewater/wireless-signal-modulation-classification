@@ -4,6 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
+from scripts.verify_protected_v2_artifacts import verify_protected_artifacts
 from signal_modulation.data_integrity import sha256_file
 from signal_modulation.run_manifest import (
     RUN_CATALOG_SCHEMA,
@@ -19,7 +20,7 @@ class RunManifestArtifactTests(unittest.TestCase):
     manifest_root = repository_root / "experiments" / "v2" / "run_manifests"
     catalog_path = manifest_root / "catalog.json"
     expected_catalog_sha256 = (
-        "3cc19ec242101405e0a9304034d2370f00dcf5afb5619cd9d259a5eaaa2645dd"
+        "5d6064899b2b9ef78f9c44e1c4ef7cdce7f9b06a370e9fda094370ffd21e2b2f"
     )
 
     def test_catalog_contains_every_frozen_configuration_seed_pair(self) -> None:
@@ -29,6 +30,10 @@ class RunManifestArtifactTests(unittest.TestCase):
         self.assertEqual(catalog["run_count"], 20)
         self.assertEqual(catalog["scope"], "fixed_validation_only")
         self.assertFalse(catalog["test_set_used"])
+        self.assertEqual(len(catalog["errata"]), 1)
+        erratum = catalog["errata"][0]
+        errata_path = self.repository_root / erratum["errata_file"]
+        self.assertEqual(sha256_file(errata_path), erratum["errata_sha256"])
 
         observed = {
             (record["configuration"], record["run_seed"])
@@ -40,6 +45,13 @@ class RunManifestArtifactTests(unittest.TestCase):
             for run_seed in V2_RUN_SEEDS
         }
         self.assertEqual(observed, expected)
+
+    def test_all_protected_historical_artifacts_match_pre_erratum_bytes(self) -> None:
+        verification = verify_protected_artifacts(self.repository_root)
+
+        self.assertTrue(verification["all_sha256_match"])
+        self.assertEqual(verification["protected_file_count"], 67)
+        self.assertEqual(verification["counts"]["validation_result"], 20)
 
     def test_all_manifest_hashes_and_repository_dependencies_verify(self) -> None:
         catalog = load_json_object(self.catalog_path)

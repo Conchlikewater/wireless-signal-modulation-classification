@@ -1,0 +1,22 @@
+{
+  "schema_version": "wireless-v2-errata-v1",
+  "affected_runs": [
+    "w3-a3-20260901",
+    "w3-a3-20260902",
+    "w3-a3-20260903",
+    "w3-a3-20260904",
+    "w3-a3-20260905"
+  ],
+  "field": "config.dropout",
+  "recorded_value": 0.3,
+  "effective_value": 0.0,
+  "evidence_commit": "596900aa81c0b8502a05563c1986a9231b61462d",
+  "evidence_path": "src/signal_modulation/w3_ablation.py:80",
+  "impact_assessment": {
+    "historical_metrics_changed": false,
+    "historical_artifacts_modified": false,
+    "assessment": "The W3 model factory constructed every A3 run as TemporalCNN1D(dropout=0.0) before training. The generic serialized config incorrectly retained its default dropout value 0.3. Therefore the committed A3 checkpoints and validation metrics describe the intended no-Dropout model, while the config.dropout metadata field is wrong. This erratum corrects interpretation only and does not recompute or overwrite a historical metric."
+  },
+  "discovered_at": "2026-09-01",
+  "discovered_by": "Codex repository audit"
+}
