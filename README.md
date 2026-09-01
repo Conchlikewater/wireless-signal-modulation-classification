@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-V2 Core的W0–W4开发、复现验收和学习交接已完成，当前进行最终冻结前审计。项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。
+V2 Core的W0–W4开发、复现验收、学习交接和最终冻结审计均已完成。项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。
 
 V2正式运行包含4个配置×5个预注册run seed：
 
@@ -13,7 +13,7 @@ V2正式运行包含4个配置×5个预注册run seed：
 - A2-G：共享TemporalCNN backbone、改用全局池化和容量受控head；
 - A3：仅把A1的Dropout从`p=0.3`改为`p=0`。
 
-所有原始JSON、best checkpoint、初始化backbone、汇总和20份run manifest均已提交。135项离线自动化测试通过。
+所有原始JSON、best checkpoint、初始化backbone、汇总和20份run manifest均已提交。137项离线自动化测试通过。最终证据、已知限制和后续范围见[`docs/FINAL_FREEZE_AUDIT.md`](docs/FINAL_FREEZE_AUDIT.md)。
 
 ## V2 Core结果
 
@@ -117,7 +117,7 @@ python -m venv .venv
 
 ## 自动化测试与CI
 
-全部135项离线测试不需要RadioML数据、GPU或API密钥：
+全部137项离线测试不需要RadioML数据、GPU或API密钥：
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -196,7 +196,7 @@ V1 test结果没有用于当时继续调参，但test已经启封，因此V2禁�
 ```text
 src/signal_modulation/        核心数据、模型、训练、统计与manifest代码
 scripts/                      审计、训练、报告和单次manifest复现入口
-tests/                        135项离线自动化测试
+tests/                        137项离线自动化测试
 manifests/v2/                 固定split manifest与索引
 experiments/v2/w2/            A0/A1五seed原始JSON与checkpoint
 experiments/v2/w3/            A2-G/A3结果、共享初始backbone与W3汇总
@@ -228,6 +228,7 @@ V2重点：
 - [`docs/W2_LEARNING_HANDOFF.md`](docs/W2_LEARNING_HANDOFF.md)：多seed成对实验；
 - [`docs/W3_LEARNING_HANDOFF.md`](docs/W3_LEARNING_HANDOFF.md)：容量受控消融；
 - [`docs/V2_CORE_REPORT.md`](docs/V2_CORE_REPORT.md)：完整结果与限制；
+- [`docs/FINAL_FREEZE_AUDIT.md`](docs/FINAL_FREEZE_AUDIT.md)：最终冻结证据、风险和后续决策；
 - [`docs/DEV_STATE.md`](docs/DEV_STATE.md)：阶段、证据和决策记录。
 
 ## 暂不包含

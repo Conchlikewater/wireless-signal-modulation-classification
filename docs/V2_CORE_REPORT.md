@@ -170,8 +170,10 @@ A2-T在代表性SNR上的五seed均值：
 - W3汇总：`experiments/v2/w3/w3_summary.json`，SHA-256 `b0edff36b715f68599ceb8076e371a80994ac0af4ae02e4d7af67d357eaeccc8`；
 - manifest catalog：`experiments/v2/run_manifests/catalog.json`，SHA-256 `3cc19ec242101405e0a9304034d2370f00dcf5afb5619cd9d259a5eaaa2645dd`；
 - 原始JSON和best checkpoint：`experiments/v2/w2/`、`experiments/v2/w3/`；
-- 自动化测试：135项离线`unittest`全部通过；
+- 自动化测试：137项离线`unittest`全部通过；其中最终冻结审计新增的检查把固定split索引归档和A2-G共享初始backbone纳入manifest启动前验证；
 - W4没有重新训练、没有产生新模型指标，也没有访问V1 test信号、标签或推理结果。
+
+最终冻结审计、Git边界、远端同步状态和后续范围见`docs/FINAL_FREEZE_AUDIT.md`。
 
 ## 10. 作品集结论与限制
 

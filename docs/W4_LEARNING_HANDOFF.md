@@ -143,7 +143,7 @@ execute_one_run(manifest, new_output_directory)
 
 ### 题3：如何用W1–W4讲出完整的面试故事，而不是只报Accuracy？
 
-标准答案：W1把数据划分随机性与训练随机性解耦，并保存固定split；W2用五个预注册seed成对比较A0/A1，发现A1的Macro F1 paired delta平均`+15.23`个百分点且方向一致；W3在共享backbone和近似参数预算下比较聚合方式，并单独做Dropout消融，结果不足以支持A2-G或A3替换A1；W4用20份manifest、checkpoint哈希、报告和135项测试固定证据。限制是所有V2结论来自固定validation，不是新test或真实空口证据。
+标准答案：W1把数据划分随机性与训练随机性解耦，并保存固定split；W2用五个预注册seed成对比较A0/A1，发现A1的Macro F1 paired delta平均`+15.23`个百分点且方向一致；W3在共享backbone和近似参数预算下比较聚合方式，并单独做Dropout消融，结果不足以支持A2-G或A3替换A1；W4用20份manifest、checkpoint哈希、报告和最终137项测试固定证据。限制是所有V2结论来自固定validation，不是新test或真实空口证据。
 
 ## G. 面试资产
 
