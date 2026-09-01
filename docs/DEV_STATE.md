@@ -2,10 +2,10 @@
 
 ## 当前阶段
 
-- 当前阶段：W2 · 多种子成对实验（已完成，用户已下令继续W3）
+- 当前阶段：W3 · 容量受控消融（开发和正式实验已完成，⑤待完成）
 - 真实开工日期：2026-08-31
-- ⑤ 拥有权验证：已完成
-- 已完成阶段：W0、W1、W2
+- ⑤ 拥有权验证：未完成
+- 已完成阶段：W0、W1、W2；W3等待学习确认后关闭
 
 ## 每阶段关键决策及理由
 
@@ -38,6 +38,15 @@
 - W2训练与统计实现提交：`616921f`；原始JSON提交：`8805511`；checkpoint提交：`f15428f`。实验实现提交早于全部正式结果。
 - 全部W2指标都是固定validation开发结果；未创建test DataLoader，未运行V1 test推理，也未把历史test指标加入汇总。
 
+### W3
+
+- 只新增 A2-G 和 A3 各五个预注册 seed，共10次正式训练；A2-T严格复用W2的A1五次结果，没有重复训练或扩成2×2网格。
+- A2-G与A2-T共享三层Conv1d/BatchNorm backbone；每个seed保存并加载确定性重建的同一份初始backbone。A3与A1的完整初始state hash相同，只把Dropout从`p=0.3`改为`p=0`。
+- A2-T/A2-G全模型参数量为`224,587 / 224,559`，相差28个（`0.0125%`）；head参数为`132,619 / 132,591`，满足目标`≤1%`。A2仍只称“共享backbone与近似参数预算下的容量受控比较”，不称严格单变量实验。
+- 10次运行全部成功，零失败、零重跑、零seed替换；原始JSON、best checkpoint、初始化backbone、矩阵锁与汇总保存在`experiments/v2/w3/`。
+- W3实现提交`596900a`早于全部正式结果；原始JSON提交`a4cd7ea`，checkpoint和初始backbone提交`3d68864`。
+- 全部W3指标都是固定validation开发结果；未创建test DataLoader、未运行V1 test推理，也未把历史test指标加入汇总。
+
 ## W2 描述性结果
 
 以下均为五个seed的`mean ± sample std`，只适用于当前RadioML固定validation，不表示统计显著性：
@@ -53,6 +62,22 @@
 - 10次训练记录的累计GPU训练与validation时间为`623.91`秒，平均`62.39`秒/次；W2产物约`13.84 MB`。
 - `w2_summary.json` SHA-256：`7c5f2513ae78903abad0781801e4f5577ec009a7203cd7a56ac5503bbaa1c00f`。
 
+## W3 描述性结果与技术判断
+
+以下均为五个seed的固定validation结果，只作描述性比较，不表示统计显著性：
+
+- A2-T Accuracy：`54.81% ± 0.64`个百分点；Macro F1：`55.47% ± 1.05`个百分点。
+- A2-G Accuracy：`55.00% ± 0.63`个百分点；Macro F1：`55.73% ± 0.64`个百分点。
+- 同seed `A2-T - A2-G` Accuracy paired delta：`-0.18 ± 0.57`个百分点；Macro F1 paired delta：`-0.25 ± 1.38`个百分点，`n_pairs=5`。
+- A2聚合比较的差异很小且Macro F1方向不一致（3个seed为A2-T更高、2个seed为A2-G更高）。当前证据不支持把平均值的微小差异解释成稳定结构优势，因此不promote A2-G。
+- A3 Accuracy：`53.91% ± 2.30`个百分点；Macro F1：`54.40% ± 3.13`个百分点。
+- 同seed `A2-T(p=0.3) - A3(p=0)` Accuracy paired delta：`+0.91 ± 2.41`个百分点；Macro F1 paired delta：`+1.08 ± 3.54`个百分点，`n_pairs=5`。
+- 去除Dropout后均值下降且波动明显增大，但seed方向仍不完全一致；安全结论是本协议下没有证据支持去掉Dropout，不能外推为“Dropout普遍有效”。
+- Conv1d/Linear MACs：A2-T/A3为`4,441,472`，A2-G为`4,440,625`；按`2 FLOPs/MAC`约为`8,882,944 / 8,881,250` FLOPs。统计不含BatchNorm、激活、池化、Dropout和bias加法。
+- 固定512样本全零输入、RTX 4060、单个预注册参考seed checkpoint的平均批次延迟：A2-T `1.487 ms`、A2-G `1.514 ms`、A3 `1.472 ms`。这是单次环境测量，不报告跨seed std，也不据此宣称普遍速度优势。
+- 10次新增训练累计记录时间`428.40`秒，平均`42.84`秒/次；W3全部产物约`29.28 MB`。
+- `w3_summary.json` SHA-256：`b0edff36b715f68599ceb8076e371a80994ac0af4ae02e4d7af67d357eaeccc8`。
+
 ## W1 固定划分产物
 
 - 数据 SHA-256：`b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c`
@@ -66,22 +91,22 @@
 
 ## 未决问题
 
-- W2 开发、训练和产物验收没有阻塞项。
+- W3 开发、训练和产物验收没有阻塞项；⑤拥有权验证仍为“未完成”，因此W4尚未开始。
 - 独立 `.venv` 没有第三方 `pytest`，但仓库测试实际使用 Python 标准库 `unittest`；无需安装依赖即可执行。W1 完整回归共 96 项。
 - `compileall` 额外检查因现有 `__pycache__` 写权限被系统拒绝，未作为通过项；96 项测试已经实际导入并执行全部新增模块。
 
 ## 下一阶段入口条件
 
-只有同时满足以下条件，才能由用户明确下令开始 W3：
+只有同时满足以下条件，才能由用户明确下令开始 W4：
 
-1. [x] A0/A1各五个预注册seed全部运行并保留原始JSON；
-2. [x] 五个同seed配对完整，`n_pairs=5`；
-3. [x] Accuracy、Macro F1、per-SNR和best epoch的mean/sample std与paired delta已生成；
-4. [x] 10个checkpoint哈希匹配、可加载且epoch与原始JSON一致；
-5. [x] W2新增产物完整性测试和106项全量离线测试通过；
-6. [x] W2学习交接包及三道面试题标准答案已写入`docs/W2_LEARNING_HANDOFF.md`；
-7. [x] 本文件的W2“⑤拥有权验证”已改为“已完成”；
-8. [x] 用户明确确认学习完成并发出继续指令。
+1. [x] A2-G/A3各五个预注册seed全部运行，A2-T只复用W2结果；
+2. [x] 两组同seed配对均完整，`n_pairs=5`；
+3. [x] 参数量、head参数、MACs/FLOPs、固定批次延迟和初始化哈希已记录；
+4. [x] 10个新checkpoint及5个初始backbone哈希匹配、可加载；
+5. [x] W3产物完整性测试及127项全量离线测试通过；
+6. [x] W3学习交接包及三道就业面试题标准答案已写入`docs/W3_LEARNING_HANDOFF.md`；
+7. [ ] 用户完成W3学习确认，本文件的W3“⑤拥有权验证”改为“已完成”；
+8. [ ] 用户在第7项完成后明确下令开始W4。
 
 ## W0 ⑤拥有权验证记录
 
@@ -105,6 +130,12 @@
 - 按用户最新学习偏好，阶段结束时直接提供三道就业面试相关源码题及标准答案，不要求用户盲猜，也不要求亲手修改代码。
 - 用户已明确确认学习完成并下令继续；相关标准答案保存在`docs/W2_LEARNING_HANDOFF.md`。
 
+## W3 ⑤拥有权验证记录
+
+- 状态：未完成。
+- 已提供三道就业面试相关源码题及标准答案，不要求用户盲猜，也不要求亲手修改代码。
+- 在用户明确确认完成本阶段学习前，不得把本项改为“已完成”，不得进入W4。
+
 ## 环境与依赖变更
 
 - W0 未安装、升级或删除任何依赖。
@@ -116,6 +147,9 @@
 - W2 未安装、升级或删除依赖；使用已验证的RTX 4060 Laptop GPU完成10次正式训练。
 - W2没有访问V1 test信号、标签或模型指标，全部新指标来自固定validation。
 - W2测试命令：`.venv\Scripts\python.exe -m unittest discover -s tests -v`，结果为106项全部通过；其中3项会重新计算W2 summary并逐个加载10个checkpoint。
+- W3未安装、升级或删除依赖；使用同一RTX 4060 Laptop GPU完成10次新增正式训练。
+- W3没有访问V1 test信号、标签或模型指标；10次新评测和5次复用结果全部来自固定validation。
+- W3测试命令：`.venv\Scripts\python.exe -m unittest discover -s tests -v`，结果为127项全部通过；其中4项会重算W3汇总、逐个加载10个新checkpoint并核对5个共享初始backbone。
 
 ## 给接手者的上下文
 
@@ -128,3 +162,5 @@
 - W2已严格复用`manifests/v2/`固定索引与五个预注册run seed；W1阶段当时没有提前实现或启动多seed训练dispatcher。
 - W2已完成A0/A1多seed对照；W3只能新增A2-G与A3，A2-T必须直接复用W2的A1结果，禁止重复训练A1或把两个一维消融扩成2×2。
 - W2结果说明A1在当前五个seed和固定validation下方向一致地高于A0，但不能据此宣称统计显著、真实空口泛化或所有信道条件下普遍更优。
+- W3两条消融均未形成足够稳定的新优势：A2-G只取得小于波动的平均差异，A3均值更低且波动更大；默认仍保留A1/A2-T，不为追求“新模型”强行promote变体。
+- W4只能整理run manifest、汇总报告、README和复现验收，不得借整理阶段重新训练、补挑seed或重开V1 test。
