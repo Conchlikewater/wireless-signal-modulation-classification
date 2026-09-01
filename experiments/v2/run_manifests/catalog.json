@@ -1,0 +1,150 @@
+{
+  "created_at_utc": "2026-09-01T01:13:18.430090+00:00",
+  "records": [
+    {
+      "configuration": "A0",
+      "manifest_file": "experiments/v2/run_manifests/w2-a0-20260901.json",
+      "manifest_sha256": "cec0efa709fa185bae5f2ecdda0edbc49e50f3fa273dc81ab97dd576b78ff13b",
+      "run_id": "w2-a0-20260901",
+      "run_seed": 20260901
+    },
+    {
+      "configuration": "A0",
+      "manifest_file": "experiments/v2/run_manifests/w2-a0-20260902.json",
+      "manifest_sha256": "24dda2547575f7965a4ad0ef01e559cd40b8e252d021b86436821156308a1297",
+      "run_id": "w2-a0-20260902",
+      "run_seed": 20260902
+    },
+    {
+      "configuration": "A0",
+      "manifest_file": "experiments/v2/run_manifests/w2-a0-20260903.json",
+      "manifest_sha256": "454f6b84e7daee302c18f5f8aada75b3cf6131ac808e92db0c7f048002e4c842",
+      "run_id": "w2-a0-20260903",
+      "run_seed": 20260903
+    },
+    {
+      "configuration": "A0",
+      "manifest_file": "experiments/v2/run_manifests/w2-a0-20260904.json",
+      "manifest_sha256": "df623984c03010885c5cd0a01297b51ea81a3f8ec8ec95585e7d0e49941249b2",
+      "run_id": "w2-a0-20260904",
+      "run_seed": 20260904
+    },
+    {
+      "configuration": "A0",
+      "manifest_file": "experiments/v2/run_manifests/w2-a0-20260905.json",
+      "manifest_sha256": "b59bd8b9e36eeeaa6cd1c741cd1e5b7e9ec1569f3da61ff19915eaecc37a05cd",
+      "run_id": "w2-a0-20260905",
+      "run_seed": 20260905
+    },
+    {
+      "configuration": "A1",
+      "manifest_file": "experiments/v2/run_manifests/w2-a1-20260901.json",
+      "manifest_sha256": "b51b2b97eeb917097165db279df09cbfd7e6c8827d625156aec70c9edc9a244e",
+      "run_id": "w2-a1-20260901",
+      "run_seed": 20260901
+    },
+    {
+      "configuration": "A1",
+      "manifest_file": "experiments/v2/run_manifests/w2-a1-20260902.json",
+      "manifest_sha256": "a365f182fb0a532134e6511b99a78b053513e8359721e487448c9c96124a5cf9",
+      "run_id": "w2-a1-20260902",
+      "run_seed": 20260902
+    },
+    {
+      "configuration": "A1",
+      "manifest_file": "experiments/v2/run_manifests/w2-a1-20260903.json",
+      "manifest_sha256": "2ee7a75ccf283828e5669ce75a114f3ec51606a8726e5eed604d732dfe61d1b6",
+      "run_id": "w2-a1-20260903",
+      "run_seed": 20260903
+    },
+    {
+      "configuration": "A1",
+      "manifest_file": "experiments/v2/run_manifests/w2-a1-20260904.json",
+      "manifest_sha256": "1edda5b11c09c6a35b9a14eb4a66a4cec4c3db75c83d85646c23deb79904afb9",
+      "run_id": "w2-a1-20260904",
+      "run_seed": 20260904
+    },
+    {
+      "configuration": "A1",
+      "manifest_file": "experiments/v2/run_manifests/w2-a1-20260905.json",
+      "manifest_sha256": "acd91cd88a54d9a87254b33aa91de40d0e6c9fc9bba8e454af3362f0afb366cd",
+      "run_id": "w2-a1-20260905",
+      "run_seed": 20260905
+    },
+    {
+      "configuration": "A2-G",
+      "manifest_file": "experiments/v2/run_manifests/w3-a2-g-20260901.json",
+      "manifest_sha256": "cc40674ca2a18ad5833e491657d0e3125839ae8e0d9f10517bd0e14d25c67afe",
+      "run_id": "w3-a2-g-20260901",
+      "run_seed": 20260901
+    },
+    {
+      "configuration": "A2-G",
+      "manifest_file": "experiments/v2/run_manifests/w3-a2-g-20260902.json",
+      "manifest_sha256": "912ad0edd4730d6cb6af22dd75d76171a7df766a6d8db24adb1d466a0d20a94d",
+      "run_id": "w3-a2-g-20260902",
+      "run_seed": 20260902
+    },
+    {
+      "configuration": "A2-G",
+      "manifest_file": "experiments/v2/run_manifests/w3-a2-g-20260903.json",
+      "manifest_sha256": "99f23229b7fed293e129b7252779d509b546d65ff724992ea645ca54718e849e",
+      "run_id": "w3-a2-g-20260903",
+      "run_seed": 20260903
+    },
+    {
+      "configuration": "A2-G",
+      "manifest_file": "experiments/v2/run_manifests/w3-a2-g-20260904.json",
+      "manifest_sha256": "1d0312e14d384e1a6a5e4f56ac4087e067b3dbd86947f6245ab1cd2669d9a1f6",
+      "run_id": "w3-a2-g-20260904",
+      "run_seed": 20260904
+    },
+    {
+      "configuration": "A2-G",
+      "manifest_file": "experiments/v2/run_manifests/w3-a2-g-20260905.json",
+      "manifest_sha256": "2838334335cf82c8a8bcb860a37405dd70cd31aed70a50243c94c1fd73e25ec6",
+      "run_id": "w3-a2-g-20260905",
+      "run_seed": 20260905
+    },
+    {
+      "configuration": "A3",
+      "manifest_file": "experiments/v2/run_manifests/w3-a3-20260901.json",
+      "manifest_sha256": "f43e34869b48ca394f4ed1bb3226d925af1f0b53e235294eec3e78af24f29c49",
+      "run_id": "w3-a3-20260901",
+      "run_seed": 20260901
+    },
+    {
+      "configuration": "A3",
+      "manifest_file": "experiments/v2/run_manifests/w3-a3-20260902.json",
+      "manifest_sha256": "b9547e531dd178e6c8361333a368498c83fef45304c614a20dfa306e3141c3cc",
+      "run_id": "w3-a3-20260902",
+      "run_seed": 20260902
+    },
+    {
+      "configuration": "A3",
+      "manifest_file": "experiments/v2/run_manifests/w3-a3-20260903.json",
+      "manifest_sha256": "f39a0f020e1f9c51e6c4cd4668f6ae94385afe6b65fc9f71bcecb88642586be7",
+      "run_id": "w3-a3-20260903",
+      "run_seed": 20260903
+    },
+    {
+      "configuration": "A3",
+      "manifest_file": "experiments/v2/run_manifests/w3-a3-20260904.json",
+      "manifest_sha256": "6631099b7c70347360171893a0ce982f57ca4675c4334d07302a698a1f2d04fa",
+      "run_id": "w3-a3-20260904",
+      "run_seed": 20260904
+    },
+    {
+      "configuration": "A3",
+      "manifest_file": "experiments/v2/run_manifests/w3-a3-20260905.json",
+      "manifest_sha256": "52fcbb33581d5251f17d8ba12b52db1610c7a503f371ec9ed81bc33ec660a05e",
+      "run_id": "w3-a3-20260905",
+      "run_seed": 20260905
+    }
+  ],
+  "replay_code_git_commit": "7c155eb4d03e43248fc4ada21f18da7015a7c510",
+  "run_count": 20,
+  "schema_version": "wireless-v2-run-catalog-v1",
+  "scope": "fixed_validation_only",
+  "test_set_used": false
+}

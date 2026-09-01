@@ -1,0 +1,97 @@
+{
+  "configuration": "A1",
+  "dataset": {
+    "default_path": "data/raw/RML2016.10a/RML2016.10a_dict.pkl",
+    "name": "RadioML 2016.10A",
+    "sha256": "b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c",
+    "total_samples": 220000
+  },
+  "historical_artifacts": {
+    "best_epoch": 6,
+    "checkpoint_file": "experiments/v2/w2/A1/run_seed_20260902/best_checkpoint.pt",
+    "checkpoint_sha256": "c4f9647595a252936b66457ded10a7f59afdecfb809785bb629222ab1bfbc900",
+    "implementation_git_commit": "616921f073011ebd86f98314302f2a9043f55284",
+    "source_result_file": "experiments/v2/w2/A1/run_seed_20260902/validation_result.json",
+    "source_result_sha256": "c2b2a57c83b1b873bf8742a04ca9b0d0ff80e2ceb3a1b27ca8a759eb5bd65b4e"
+  },
+  "historical_environment": {
+    "cuda": "13.0",
+    "cuda_device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cudnn": 92000,
+    "cudnn_benchmark": false,
+    "deterministic_algorithms": true,
+    "device": "cuda",
+    "elapsed_seconds": 47.37475489999997,
+    "numpy": "2.5.2",
+    "peak_cuda_memory_mb": 143.53857421875,
+    "python": "3.12.10",
+    "torch": "2.12.1+cu130"
+  },
+  "initialization": null,
+  "model_name": "TemporalCNN1D",
+  "provenance": {
+    "dependency_limit": "Top-level packages are pinned; historical_environment records the actual Python, NumPy, PyTorch, CUDA and cuDNN versions.",
+    "dependency_specs": [
+      {
+        "file": "pyproject.toml",
+        "sha256": "58035ab2354ae24433bee3312a7ff368aded1f92b492b404827e885ff63626f5"
+      },
+      {
+        "file": "requirements-gpu.txt",
+        "sha256": "e9d7e642b8c2a98eaa0f4a61d19a0e86979f32164e382f2b0b9d40e29f55bb41"
+      }
+    ],
+    "protocol_file": "docs/v2_protocol.md",
+    "protocol_sha256": "32cf75029cfb558d8bb9dfc35e1dc30787f7d31a59d291fd869ea99a9867a902",
+    "replay_code_git_commit": "7c155eb4d03e43248fc4ada21f18da7015a7c510"
+  },
+  "replay": {
+    "bitwise_reproduction_not_guaranteed": true,
+    "default_output_directory": "artifacts/replay/w2-a1-20260902",
+    "does_not_use_v1_test": true,
+    "entrypoint": "scripts/replay_v2_run.py",
+    "requires_explicit_execute": true
+  },
+  "run_id": "w2-a1-20260902",
+  "run_seed": 20260902,
+  "schema_version": "wireless-v2-run-manifest-v1",
+  "scope": "fixed_validation_only",
+  "source_stage": "W2",
+  "split": {
+    "manifest_file": "manifests/v2/split_manifest.json",
+    "manifest_sha256": "48ad195d5552e3ec4e5a6d1bc4fc0f20099df8dc70f8eb78a80df95e7f5297a7",
+    "sealed_test_samples_metadata_only": 33000,
+    "split_seed": 20260812,
+    "train_samples": 154000,
+    "validation_samples": 33000
+  },
+  "test_set_used": false,
+  "training": {
+    "checkpoint_selection": "lowest_validation_loss",
+    "config": {
+      "dropout": 0.3,
+      "epochs": 20,
+      "evaluation_batch_size": 512,
+      "learning_rate": 0.001,
+      "min_delta": 0.0001,
+      "num_workers": 0,
+      "patience": 4,
+      "run_seed": 20260902,
+      "split_seed": 20260812,
+      "train_batch_size": 256,
+      "use_amp": false,
+      "use_scheduler": false
+    },
+    "optimizer": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "name": "Adam",
+      "scheduler": null,
+      "weight_decay": 0.0
+    }
+  }
+}
