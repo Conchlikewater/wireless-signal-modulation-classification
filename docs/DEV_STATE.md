@@ -79,7 +79,7 @@
 3. [x] Accuracy、Macro F1、per-SNR和best epoch的mean/sample std与paired delta已生成；
 4. [x] 10个checkpoint哈希匹配、可加载且epoch与原始JSON一致；
 5. [x] W2新增产物完整性测试和106项全量离线测试通过；
-6. [ ] W2学习交接包已经交付；
+6. [x] W2学习交接包及三道面试题标准答案已写入`docs/W2_LEARNING_HANDOFF.md`；
 7. [ ] 本文件的W2“⑤拥有权验证”已改为“已完成”；
 8. [ ] 用户明确发出W3开工指令。
 
