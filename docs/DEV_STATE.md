@@ -2,9 +2,9 @@
 
 ## 当前阶段
 
-- 当前阶段：W1 · `split_seed` / `run_seed` 解耦（已完成，用户已下令继续 W2）
+- 当前阶段：W2 · 多种子成对实验（开发与实验验收已完成，等待学习交付确认）
 - 真实开工日期：2026-08-31
-- ⑤ 拥有权验证：已完成
+- ⑤ 拥有权验证：未完成
 - 已完成阶段：W0、W1
 
 ## 每阶段关键决策及理由
@@ -29,6 +29,30 @@
 - split manifest 生成脚本只依据数据文件哈希、分组键、组大小、调制/SNR 元数据和冻结算法构造索引；未调用任何 test 样本的 `__getitem__`，未训练或评测模型。
 - 划分实现提交：`3892b3b`。它晚于 W0 预注册提交 `3cfc1c4`，且早于任何 W2–W4 正式训练结果。
 
+### W2
+
+- 只运行预注册的 A0 `SimpleCNN1D` 与 A1 `TemporalCNN1D`，每个模型完整运行 `20260901` 至 `20260905` 五个 seed，共10次。
+- 每个同 seed 的 A0/A1加载同一split manifest，并由独立同seed DataLoader generator产生相同训练batch顺序；未宣称不同架构逐参数初始化相同。
+- 每次运行按最低validation loss保留best checkpoint，沿用20 epochs、patience 4和min_delta 0.0001；没有为某个模型单独调参。
+- 10次运行全部成功，零失败、零重跑、零seed替换。原始JSON、best checkpoint、matrix lock和汇总均保存在`experiments/v2/w2/`。
+- W2训练与统计实现提交：`616921f`；原始JSON提交：`8805511`；checkpoint提交：`f15428f`。实验实现提交早于全部正式结果。
+- 全部W2指标都是固定validation开发结果；未创建test DataLoader，未运行V1 test推理，也未把历史test指标加入汇总。
+
+## W2 描述性结果
+
+以下均为五个seed的`mean ± sample std`，只适用于当前RadioML固定validation，不表示统计显著性：
+
+- A0 Accuracy：`42.26% ± 2.08`个百分点；Macro F1：`40.24% ± 2.52`个百分点。
+- A1 Accuracy：`54.81% ± 0.64`个百分点；Macro F1：`55.47% ± 1.05`个百分点。
+- 同seed `A1-A0` Accuracy paired delta：`+12.55 ± 2.57`个百分点，`n_pairs=5`。
+- 同seed `A1-A0` Macro F1 paired delta：`+15.23 ± 3.35`个百分点，`n_pairs=5`。
+- 五个paired delta方向全部为正；安全结论仅为“在本协议和五个seed下观察到一致方向”，不做显著性或普适性外推。
+- A0 best epoch：`20.0 ± 0.0`；A1 best epoch：`9.0 ± 2.74`。
+- 参数量是确定性原值：A0 `11,499`，A1 `224,587`，不对参数量报告std。
+- 在`-20`至`-14 dB`两者都接近机会水平；从`-12 dB`开始差距增大，A1在`0 dB`及以上平均Accuracy约`77%–82%`。这是数据条件下的描述，不是所有无线环境的结论。
+- 10次训练记录的累计GPU训练与validation时间为`623.91`秒，平均`62.39`秒/次；W2产物约`13.84 MB`。
+- `w2_summary.json` SHA-256：`7c5f2513ae78903abad0781801e4f5577ec009a7203cd7a56ac5503bbaa1c00f`。
+
 ## W1 固定划分产物
 
 - 数据 SHA-256：`b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c`
@@ -42,22 +66,22 @@
 
 ## 未决问题
 
-- W1 开发与自动化验收没有阻塞项。
+- W2 开发、训练和产物验收没有阻塞项。
 - 独立 `.venv` 没有第三方 `pytest`，但仓库测试实际使用 Python 标准库 `unittest`；无需安装依赖即可执行。W1 完整回归共 96 项。
 - `compileall` 额外检查因现有 `__pycache__` 写权限被系统拒绝，未作为通过项；96 项测试已经实际导入并执行全部新增模块。
 
 ## 下一阶段入口条件
 
-只有同时满足以下条件，才能由用户明确下令开始 W2：
+只有同时满足以下条件，才能由用户明确下令开始 W3：
 
-1. [x] W0 seed 列表和实验矩阵已在结果前提交；
-2. [x] `split_seed` 与 `run_seed` 已在 V2 代码入口解耦；
-3. [x] 固定 split manifest 已保存、哈希已锁定并通过互斥检查；
-4. [x] V2 入口不返回 test Dataset、Subset、索引数组或 DataLoader；
-5. [x] 96 项离线测试通过；
-6. [x] W1 三道具体源码题的答案和代码依据已完成讲解；
-7. [x] 本文件的“⑤ 拥有权验证”已改为“已完成”；
-8. [x] 用户明确发出继续开发指令。
+1. [x] A0/A1各五个预注册seed全部运行并保留原始JSON；
+2. [x] 五个同seed配对完整，`n_pairs=5`；
+3. [x] Accuracy、Macro F1、per-SNR和best epoch的mean/sample std与paired delta已生成；
+4. [x] 10个checkpoint哈希匹配、可加载且epoch与原始JSON一致；
+5. [x] W2新增产物完整性测试和106项全量离线测试通过；
+6. [ ] W2学习交接包已经交付；
+7. [ ] 本文件的W2“⑤拥有权验证”已改为“已完成”；
+8. [ ] 用户明确发出W3开工指令。
 
 ## W0 ⑤拥有权验证记录
 
@@ -74,6 +98,12 @@
 - 用户选择由 Codex 直接给出三道源码题的面试版答案和代码依据，并在讲解后明确下令继续开发；按用户决定，本阶段不要求亲手修改代码或生成个人 `git diff`。
 - 该记录只表示用户决定完成本阶段学习交付并进入 W2，不夸大为用户已经能够脱离提示独立回答全部问题；相关知识仍应加入后续复习。
 
+## W2 ⑤拥有权验证记录
+
+- 状态：未完成。
+- 按用户最新学习偏好，阶段结束时直接提供三道就业面试相关源码题及标准答案，不要求用户盲猜，也不要求亲手修改代码。
+- 用户确认学习交付并明确继续前，不进入W3。
+
 ## 环境与依赖变更
 
 - W0 未安装、升级或删除任何依赖。
@@ -82,6 +112,9 @@
 - W0 测试说明：`.venv\Scripts\python.exe -m pytest -q` 因环境未安装 `pytest` 而未进入测试收集；没有用其他环境冒充项目环境，也没有安装新依赖。
 - W1 未安装、升级或删除依赖；未训练模型、未运行 frozen test 评测、未读取或记录模型指标。
 - W1 测试命令：`.venv\Scripts\python.exe -m unittest discover -s tests -v`，结果为 96 项全部通过。
+- W2 未安装、升级或删除依赖；使用已验证的RTX 4060 Laptop GPU完成10次正式训练。
+- W2没有访问V1 test信号、标签或模型指标，全部新指标来自固定validation。
+- W2测试命令：`.venv\Scripts\python.exe -m unittest discover -s tests -v`，结果为106项全部通过；其中3项会重新计算W2 summary并逐个加载10个checkpoint。
 
 ## 给接手者的上下文
 
@@ -91,4 +124,6 @@
 - W0 的耗时测量不是正式实验，不得保存、读取或引用其中的验证指标。
 - W1 不得重新打开 `docs/archive/` 里的旧 seed 或扩展范围；需要变更协议时必须新提交并说明尚未产生哪些结果。
 - W1 已确认仓库测试基于标准库 `unittest`，不需要为缺少 `pytest` 安装新依赖；此前关于“必须先解决 pytest”的判断已被实际测试入口纠正。
-- W2 只能复用 `manifests/v2/` 的固定索引与五个预注册 run seed；W1 没有实现或启动多 seed 训练 dispatcher。
+- W2已严格复用`manifests/v2/`固定索引与五个预注册run seed；W1阶段当时没有提前实现或启动多seed训练dispatcher。
+- W2已完成A0/A1多seed对照；W3只能新增A2-G与A3，A2-T必须直接复用W2的A1结果，禁止重复训练A1或把两个一维消融扩成2×2。
+- W2结果说明A1在当前五个seed和固定validation下方向一致地高于A0，但不能据此宣称统计显著、真实空口泛化或所有信道条件下普遍更优。
