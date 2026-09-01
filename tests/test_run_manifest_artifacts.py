@@ -54,6 +54,11 @@ class RunManifestArtifactTests(unittest.TestCase):
             self.assertEqual(verification["run_id"], record["run_id"])
             self.assertEqual(verification["data_status"], "not_checked")
             self.assertFalse(verification["test_set_used"])
+            expected_file_count = 8 if manifest["configuration"] == "A2-G" else 7
+            self.assertEqual(
+                verification["verified_repository_file_count"],
+                expected_file_count,
+            )
 
     def test_any_catalog_record_can_reconstruct_an_explicit_replay_command(self) -> None:
         catalog = load_json_object(self.catalog_path)

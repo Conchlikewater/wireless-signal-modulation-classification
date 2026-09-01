@@ -34,6 +34,10 @@ class RunManifestTests(unittest.TestCase):
             replay_code_commit="a" * 40,
         )
 
+    def _committed_manifest(self, name: str) -> dict:
+        path = self.repository_root / "experiments" / "v2" / "run_manifests" / name
+        return json.loads(path.read_text(encoding="utf-8"))
+
     def test_historical_result_builds_a_validation_only_manifest(self) -> None:
         manifest = self._manifest()
         validate_run_manifest(manifest)
@@ -63,6 +67,35 @@ class RunManifestTests(unittest.TestCase):
         self.assertEqual(verification["data_status"], "not_checked")
         self.assertFalse(verification["ready_for_explicit_execute"])
         self.assertFalse(verification["test_set_used"])
+        self.assertEqual(verification["verified_repository_file_count"], 7)
+
+    def test_initialization_schema_is_configuration_specific(self) -> None:
+        manifest = self._manifest()
+        manifest["initialization"] = {"unexpected": True}
+        with self.assertRaises(ValueError):
+            validate_run_manifest(manifest)
+
+        manifest = self._committed_manifest("w3-a2-g-20260901.json")
+        del manifest["initialization"]["shared_backbone_state_sha256"]
+        with self.assertRaises(ValueError):
+            validate_run_manifest(manifest)
+
+        manifest = self._committed_manifest("w3-a3-20260901.json")
+        manifest["initialization"]["matches_a1_initial_state"] = False
+        with self.assertRaises(ValueError):
+            validate_run_manifest(manifest)
+
+    def test_a2g_shared_initial_backbone_is_part_of_preflight(self) -> None:
+        manifest = self._committed_manifest("w3-a2-g-20260901.json")
+        verification = verify_run_manifest(
+            manifest,
+            repository_root=self.repository_root,
+        )
+        self.assertEqual(verification["verified_repository_file_count"], 8)
+
+        manifest["initialization"]["shared_backbone_file_sha256"] = "0" * 64
+        with self.assertRaises(ValueError):
+            verify_run_manifest(manifest, repository_root=self.repository_root)
 
     def test_tampered_dependency_spec_is_rejected(self) -> None:
         manifest = self._manifest()

@@ -9,7 +9,9 @@ from typing import Any, Mapping
 from signal_modulation.data_integrity import sha256_file
 from signal_modulation.v2_experiment import (
     V2_DATASET_SHA256,
+    V2_PROTOCOL_VERSION,
     V2_RUN_SEEDS,
+    V2_SPLIT_SEED,
     V2_SPLIT_MANIFEST_SHA256,
 )
 
@@ -124,6 +126,41 @@ def validate_run_manifest(manifest: Mapping[str, Any]) -> None:
     if training["config"].get("split_seed") != split.get("split_seed"):
         raise ValueError("training config split seed does not match manifest")
 
+    initialization = manifest.get("initialization")
+    if configuration in {"A0", "A1"}:
+        if initialization is not None:
+            raise ValueError(f"{configuration} must not declare W3 initialization")
+    elif configuration == "A2-G":
+        if not isinstance(initialization, Mapping):
+            raise ValueError("A2-G shared-backbone initialization is missing")
+        _require_relative_file(
+            initialization.get("shared_backbone_file"),
+            "initialization.shared_backbone_file",
+        )
+        _require_sha256(
+            initialization.get("shared_backbone_file_sha256"),
+            "initialization.shared_backbone_file_sha256",
+        )
+        _require_sha256(
+            initialization.get("shared_backbone_state_sha256"),
+            "initialization.shared_backbone_state_sha256",
+        )
+    elif configuration == "A3":
+        if not isinstance(initialization, Mapping):
+            raise ValueError("A3 initialization audit is missing")
+        initial_state_sha256 = _require_sha256(
+            initialization.get("initial_state_sha256"),
+            "initialization.initial_state_sha256",
+        )
+        reference_sha256 = _require_sha256(
+            initialization.get("reference_a1_initial_state_sha256"),
+            "initialization.reference_a1_initial_state_sha256",
+        )
+        if initialization.get("matches_a1_initial_state") is not True:
+            raise ValueError("A3 initialization must match its paired A1 run")
+        if initial_state_sha256 != reference_sha256:
+            raise ValueError("A3 and paired A1 initialization hashes do not match")
+
     provenance = manifest.get("provenance")
     if not isinstance(provenance, Mapping):
         raise ValueError("manifest provenance is missing")
@@ -183,6 +220,33 @@ def verify_run_manifest(
             raise ValueError(f"file hash does not match manifest: {relative_path}")
         verified_files.append(relative_path)
 
+    split_manifest = load_json_object(root / split["manifest_file"])
+    if split_manifest.get("protocol_version") != V2_PROTOCOL_VERSION:
+        raise ValueError("split manifest protocol version does not match V2")
+    split_definition = split_manifest.get("split")
+    split_indices = split_manifest.get("indices")
+    if not isinstance(split_definition, Mapping) or not isinstance(
+        split_indices, Mapping
+    ):
+        raise ValueError("split manifest is missing split or index metadata")
+    if split_definition.get("split_seed") != V2_SPLIT_SEED:
+        raise ValueError("split manifest seed does not match V2")
+    index_filename = split_indices.get("filename")
+    if index_filename != "split_indices.npz":
+        raise ValueError("split index archive filename is not frozen")
+    index_sha256 = _require_sha256(
+        split_indices.get("file_sha256"),
+        "split_manifest.indices.file_sha256",
+    )
+    split_directory = Path(split["manifest_file"]).parent
+    index_relative_path = (split_directory / index_filename).as_posix()
+    index_path = _repository_file(root, index_relative_path)
+    if not index_path.is_file():
+        raise FileNotFoundError(index_path)
+    if sha256_file(index_path) != index_sha256:
+        raise ValueError("split index archive hash does not match split manifest")
+    verified_files.append(index_relative_path)
+
     source_result = load_json_object(root / historical["source_result_file"])
     if (
         source_result.get("status") != "completed"
@@ -192,8 +256,21 @@ def verify_run_manifest(
         or source_result.get("checkpoint_sha256") != historical["checkpoint_sha256"]
         or source_result.get("implementation_git_commit")
         != historical["implementation_git_commit"]
+        or source_result.get("initialization") != manifest.get("initialization")
     ):
         raise ValueError("historical result does not match run manifest")
+
+    initialization = manifest.get("initialization")
+    if manifest["configuration"] == "A2-G":
+        backbone_relative_path = initialization["shared_backbone_file"]
+        backbone_path = _repository_file(root, backbone_relative_path)
+        if not backbone_path.is_file():
+            raise FileNotFoundError(backbone_path)
+        if sha256_file(backbone_path) != initialization[
+            "shared_backbone_file_sha256"
+        ]:
+            raise ValueError("shared initial backbone hash does not match manifest")
+        verified_files.append(backbone_relative_path)
 
     data_status = "not_checked"
     if data_file is not None:
