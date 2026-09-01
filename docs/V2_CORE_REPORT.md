@@ -4,12 +4,16 @@
 
 V2 Core在不重新使用V1 test的前提下，完成了固定开发边界、五个预注册run seed、A0/A1成对模型对照、两条容量受控消融、完整原始产物和单次运行manifest复现入口。
 
+> 发布状态（2026-09-02）：开发阶段完成，发布纠错进行中。原最终冻结审计漏掉A3的元数据语义不一致，原“无P0阻塞项”结论已经撤销；纠正版发布审计通过前，本报告不能作为最终发布状态证明。
+
 当前默认模型仍是A1/A2-T `TemporalCNN1D`。主要理由：
 
 - 相比A0，A1在五个seed下的validation Macro F1平均提高`15.23`个百分点，五个paired delta方向全部为正；
 - A2-G的平均Macro F1只比A2-T高约`0.25`个百分点，差异小于配对波动且方向不一致，不足以支持稳定结构优势；
 - A3去掉Dropout后平均Macro F1降低约`1.08`个百分点、波动增大，不支持移除当前`p=0.3`；
 - V2 Core没有新的独立test，因此以上都是固定validation上的开发阶段结论，不是新的最终泛化成绩。
+
+A3限定：W3工厂在实现提交`596900a`中实际构造`TemporalCNN1D(dropout=0.0)`，但通用`V2ExperimentConfig`的默认`dropout=0.3`被序列化进5份A3 JSON及对应run manifest。原始产物不覆盖；`experiments/v2/w3/A3/ERRATA.json`提供机器可读的effective值。该缺陷影响配置记录准确性，不改变实际训练模型或已报告指标。
 
 ## 2. 数据与评测边界
 
@@ -168,12 +172,12 @@ A2-T在代表性SNR上的五seed均值：
 - 固定划分：`manifests/v2/split_manifest.json`；
 - W2汇总：`experiments/v2/w2/w2_summary.json`，SHA-256 `7c5f2513ae78903abad0781801e4f5577ec009a7203cd7a56ac5503bbaa1c00f`；
 - W3汇总：`experiments/v2/w3/w3_summary.json`，SHA-256 `b0edff36b715f68599ceb8076e371a80994ac0af4ae02e4d7af67d357eaeccc8`；
-- manifest catalog：`experiments/v2/run_manifests/catalog.json`，SHA-256 `3cc19ec242101405e0a9304034d2370f00dcf5afb5619cd9d259a5eaaa2645dd`；
+- manifest catalog：`experiments/v2/run_manifests/catalog.json`，已登记A3勘误；
 - 原始JSON和best checkpoint：`experiments/v2/w2/`、`experiments/v2/w3/`；
-- 自动化测试：137项离线`unittest`全部通过；其中最终冻结审计新增的检查把固定split索引归档和A2-G共享初始backbone纳入manifest启动前验证；
+- 自动化测试：当前140项离线`unittest`全部通过；新增语义测试直接检查各arm的`nn.Dropout.p`，并验证67个受保护历史产物仍与纠错前基线字节一致；
 - W4没有重新训练、没有产生新模型指标，也没有访问V1 test信号、标签或推理结果。
 
-最终冻结审计、Git边界、远端同步状态和后续范围见`docs/FINAL_FREEZE_AUDIT.md`。
+原冻结审计的撤销原因、Git边界、远端同步状态和后续范围见`docs/FINAL_FREEZE_AUDIT.md`。
 
 ## 10. 作品集结论与限制
 

@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-V2 Core的W0–W4开发、复现验收、学习交接和最终冻结审计均已完成。项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。
+V2 Core的W0–W4开发阶段已完成，当前处于**发布纠错进行中**，尚未通过纠正版发布审计。项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。
 
 V2正式运行包含4个配置×5个预注册run seed：
 
@@ -13,7 +13,7 @@ V2正式运行包含4个配置×5个预注册run seed：
 - A2-G：共享TemporalCNN backbone、改用全局池化和容量受控head；
 - A3：仅把A1的Dropout从`p=0.3`改为`p=0`。
 
-所有原始JSON、best checkpoint、初始化backbone、汇总和20份run manifest均已提交。137项离线自动化测试通过。最终证据、已知限制和后续范围见[`docs/FINAL_FREEZE_AUDIT.md`](docs/FINAL_FREEZE_AUDIT.md)。
+所有原始JSON、best checkpoint、初始化backbone、汇总和20份run manifest均已提交且保持原字节不变。发布审计发现A3历史记录把通用配置默认值`dropout=0.3`写入JSON和manifest，但训练工厂实际构造的是`dropout=0.0`；机器可读勘误见[`experiments/v2/w3/A3/ERRATA.json`](experiments/v2/w3/A3/ERRATA.json)。当前140项离线自动化测试通过；原“最终冻结通过”结论已经撤销，纠正版发布前以本节状态为准。
 
 ## V2 Core结果
 
@@ -24,7 +24,7 @@ V2正式运行包含4个配置×5个预注册run seed：
 | A0 SimpleCNN | 42.26% ± 2.08 pp | 40.24% ± 2.52 pp | 11,499 | 教学基线 |
 | A1/A2-T TemporalCNN | 54.81% ± 0.64 pp | 55.47% ± 1.05 pp | 224,587 | 当前默认模型 |
 | A2-G 全局池化 | 55.00% ± 0.63 pp | 55.73% ± 0.64 pp | 224,559 | 差异小于波动，不promote |
-| A3 无Dropout | 53.91% ± 2.30 pp | 54.40% ± 3.13 pp | 224,587 | 均值下降、波动增大，不promote |
+| A3 无Dropout¹ | 53.91% ± 2.30 pp | 54.40% ± 3.13 pp | 224,587 | 均值下降、波动增大，不promote |
 
 主要成对结果：
 
@@ -33,6 +33,8 @@ V2正式运行包含4个配置×5个预注册run seed：
 - `A2-T(p=0.3)−A3(p=0)` Macro F1 paired delta：`+1.08 ± 3.54`个百分点，方向不完全一致。
 
 安全结论是保留A1/A2-T。A2-G的平均分略高，但约`0.25`个百分点的差异小于跨seed波动，不能包装成稳定提升；移除Dropout也没有得到可靠收益。
+
+¹ A3的实际模型是`Dropout(p=0.0)`，但历史JSON和run manifest的`config.dropout`误记为`0.3`。勘误只修正元数据解释，不改写原始产物，也不改变已经报告的指标。
 
 完整原始结果、per-SNR数据、参数/MACs、延迟、限制和证据哈希见[`docs/V2_CORE_REPORT.md`](docs/V2_CORE_REPORT.md)。
 
@@ -117,7 +119,7 @@ python -m venv .venv
 
 ## 自动化测试与CI
 
-全部137项离线测试不需要RadioML数据、GPU或API密钥：
+当前140项离线测试不需要RadioML数据、GPU或API密钥：
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -196,7 +198,7 @@ V1 test结果没有用于当时继续调参，但test已经启封，因此V2禁�
 ```text
 src/signal_modulation/        核心数据、模型、训练、统计与manifest代码
 scripts/                      审计、训练、报告和单次manifest复现入口
-tests/                        137项离线自动化测试
+tests/                        离线自动化测试
 manifests/v2/                 固定split manifest与索引
 experiments/v2/w2/            A0/A1五seed原始JSON与checkpoint
 experiments/v2/w3/            A2-G/A3结果、共享初始backbone与W3汇总
@@ -228,7 +230,7 @@ V2重点：
 - [`docs/W2_LEARNING_HANDOFF.md`](docs/W2_LEARNING_HANDOFF.md)：多seed成对实验；
 - [`docs/W3_LEARNING_HANDOFF.md`](docs/W3_LEARNING_HANDOFF.md)：容量受控消融；
 - [`docs/V2_CORE_REPORT.md`](docs/V2_CORE_REPORT.md)：完整结果与限制；
-- [`docs/FINAL_FREEZE_AUDIT.md`](docs/FINAL_FREEZE_AUDIT.md)：最终冻结证据、风险和后续决策；
+- [`docs/FINAL_FREEZE_AUDIT.md`](docs/FINAL_FREEZE_AUDIT.md)：原冻结审计、结论撤销原因与剩余发布风险；
 - [`docs/DEV_STATE.md`](docs/DEV_STATE.md)：阶段、证据和决策记录。
 
 ## 暂不包含

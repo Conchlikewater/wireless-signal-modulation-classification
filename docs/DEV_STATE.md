@@ -2,12 +2,19 @@
 
 ## 当前阶段
 
-- 当前阶段：W0–W4与最终全景审计均已完成；Wireless V2 Core已冻结，R0尚未开始
+- 当前阶段：W0–W4开发阶段已完成；Wireless发布纠错进行中，原最终冻结结论已撤销
 - 真实开工日期：2026-08-31
 - ⑤ 拥有权验证：已完成
 - 已完成阶段：W0、W1、W2、W3、W4
 
 ## 每阶段关键决策及理由
+
+### 发布纠错 W-A（进行中）
+
+- A-1已完成：新增`experiments/v2/w3/A3/ERRATA.json`，声明5个A3运行的`config.dropout`记录值为`0.3`、实际effective值为`0.0`；20份历史JSON、20个checkpoint、5个初始backbone、2份summary和20份run manifest共67个文件保持纠错前字节不变。
+- A-2已完成：配置语义测试通过实际模型工厂遍历`nn.Dropout.p`；临时把effective值改错为`0.3`时，5个A3 seed全部出现`[0.0] != [0.3]`失败，恢复后当前140项完整测试通过。
+- A-3已完成：README、技术报告、原冻结审计和本状态文件撤销“最终冻结通过/无P0阻塞项”表述。
+- A-4训练级单次复现、A-5 validation乐观偏差声明及纠正版发布尚未完成。
 
 ### W0
 
@@ -102,7 +109,7 @@
 
 ## 未决问题
 
-- 没有阻塞Wireless V2 Core封存的问题。137项本地离线测试已通过，代表性A2-G manifest dry-run通过。
+- 当前阻塞纠正版发布：A3训练级单次复现尚未执行，validation同集选择偏差声明尚未补齐，纠正版最终审计与远端CI尚未完成。
 - 当前`main`的V2提交尚未推送到`origin/main`；远端仍停在V1提交`f9668db`。这不影响本地证据，但意味着远端备份和远端CI尚未覆盖V2。
 - V1历史56.38% test结果仍只有历史文档与图表，原V1 checkpoint和JSON不在当前`artifacts/`；因此它只能作为历史记录，不能声称当前可独立重算。V2的20次validation运行不受此问题影响，其JSON和checkpoint均已提交并通过哈希测试。
 - V2 Core没有新的独立test、真实空口数据或跨域结果；这些是明确的能力边界，不是本次实现遗漏。
@@ -192,12 +199,12 @@
 - W4只能整理run manifest、汇总报告、README和复现验收，不得借整理阶段重新训练、补挑seed或重开V1 test。
 - W4已完成上述限定范围；后续若从manifest显式重训，必须使用新输出目录并作为复现运行记录，不能覆盖W2/W3正式JSON或checkpoint。
 
-## 最终冻结审计
+## 原最终冻结审计（结论已撤销）
 
 - 审计日期：2026-09-01。
-- 审计结论：通过。W0预注册提交早于W1–W4正式结果；20次运行、20个checkpoint、20份run manifest、5份共享初始backbone和两份汇总均可审计。
+- 原审计结论曾写为“通过”，但在2026-09-01发现A3的`config.dropout`记录值与实际模型不一致后撤销。20次运行产物仍保留且可审计，但发布状态必须等待纠错后重新判断。
 - 审计修复：`verify_run_manifest`现已把固定`split_indices.npz`与A2-G共享初始backbone纳入启动前哈希检查，并验证不同配置对应的初始化schema及原始结果一致性；修复不改变模型、训练动态、checkpoint或指标，无需重训。
-- 验证：137项离线测试全部通过；A2-G/20260901 dry-run核对8项仓库文件和数据SHA-256，未加载信号、未训练、未访问V1 test。
-- 决策：不继续扩张Wireless P0，不新增模型、不调参、不继续查看V1 test。后续如单独开启P1，优先级为temporal occlusion sensitivity、受控Channel Robustness Lab、真正独立数据，且必须另立协议和版本。
+- 当前验证：140项离线测试全部通过；67个受保护历史产物与纠错前基线字节一致；尚未完成训练级replay。
+- 当前决策：不继续查看V1 test；先完成已批准的W-A至W-D，再进行新的发布审计。
 - 详细证据与风险：`docs/FINAL_FREEZE_AUDIT.md`。
 - `requirements-gpu.txt`和`pyproject.toml`固定顶层依赖，manifest记录实际历史运行环境；这不是包含驱动和全部传递依赖的容器镜像，因此“可重启、可审计”不等于任意机器逐位一致。
