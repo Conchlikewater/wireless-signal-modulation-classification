@@ -1,0 +1,52 @@
+{
+  "a2t_source_note": "A2-T initial backbones are deterministically reconstructed from the same run seed and unchanged TemporalCNN initialization used in W2.",
+  "created_at_utc": "2026-09-01T00:29:12.424739+00:00",
+  "records": [
+    {
+      "a2_shared_backbone_file": "experiments/v2/w3/initial_backbones/run_seed_20260901.pt",
+      "a2_shared_backbone_file_sha256": "f230588666aaab089efb24f19a58a676e5cfa706a44d9ec3b878bb7ee0c6da50",
+      "a2_shared_backbone_state_sha256": "63c8eda6951466ec2e1398174dbe5ef69ddea5c5c6f348dd5217ca4c4793347c",
+      "a3_initial_state_matches_a1": true,
+      "a3_initial_state_sha256": "a1cb5815966d76210d2344f821b4f420a4d16dcbbc769a1ce59e8bc402f93fd6",
+      "a3_reference_a1_initial_state_sha256": "a1cb5815966d76210d2344f821b4f420a4d16dcbbc769a1ce59e8bc402f93fd6",
+      "run_seed": 20260901
+    },
+    {
+      "a2_shared_backbone_file": "experiments/v2/w3/initial_backbones/run_seed_20260902.pt",
+      "a2_shared_backbone_file_sha256": "2b2a35fb28713a9840c21beee98e142dfe50e01e153c77b48ce68bf3510e4c04",
+      "a2_shared_backbone_state_sha256": "abd4cdef0dd87ceb895d78c66cb672e93c2aac7ce57c61eb9954d8311b9acdf5",
+      "a3_initial_state_matches_a1": true,
+      "a3_initial_state_sha256": "47e25b005f1a4e27aefdf58d6aa52c6513aa13c2705db8b26576efb8769b1bf7",
+      "a3_reference_a1_initial_state_sha256": "47e25b005f1a4e27aefdf58d6aa52c6513aa13c2705db8b26576efb8769b1bf7",
+      "run_seed": 20260902
+    },
+    {
+      "a2_shared_backbone_file": "experiments/v2/w3/initial_backbones/run_seed_20260903.pt",
+      "a2_shared_backbone_file_sha256": "7d5fc7ace380f377b0ee8a577f93b474fd98524e0e4233390d7aff1f8f121bd6",
+      "a2_shared_backbone_state_sha256": "7596e29211186e065d1f813b34d3969628064003b546d8b7917e63c3ae49f8a1",
+      "a3_initial_state_matches_a1": true,
+      "a3_initial_state_sha256": "58ffbb513dcad6b7006988fbfd854aaf9a37038957d7f89eed9e1632686f3e4a",
+      "a3_reference_a1_initial_state_sha256": "58ffbb513dcad6b7006988fbfd854aaf9a37038957d7f89eed9e1632686f3e4a",
+      "run_seed": 20260903
+    },
+    {
+      "a2_shared_backbone_file": "experiments/v2/w3/initial_backbones/run_seed_20260904.pt",
+      "a2_shared_backbone_file_sha256": "331a1ee0e49322190b05ddf09bb16506ab81d5c2a69d3213e8201656c6ae49d4",
+      "a2_shared_backbone_state_sha256": "fc79eaba42d4194167d735739ff56cb21531de2ccbc1faf9fa34e9d9a06ac9ff",
+      "a3_initial_state_matches_a1": true,
+      "a3_initial_state_sha256": "22acc77a1e8911e44ec439872910c23be80dd95a78b7ab0dfbfd232d0352ee23",
+      "a3_reference_a1_initial_state_sha256": "22acc77a1e8911e44ec439872910c23be80dd95a78b7ab0dfbfd232d0352ee23",
+      "run_seed": 20260904
+    },
+    {
+      "a2_shared_backbone_file": "experiments/v2/w3/initial_backbones/run_seed_20260905.pt",
+      "a2_shared_backbone_file_sha256": "f5b1994c58932ada0906cd20c19f0264f0083e91f47cfb0ba97a2999f2f2664e",
+      "a2_shared_backbone_state_sha256": "9c66207765e279626aecb72dd2b24572077093686fa548359d18c4e4e953d033",
+      "a3_initial_state_matches_a1": true,
+      "a3_initial_state_sha256": "589523166d87bfe700aa271f1119e36b749ca278b96e32ea1b68fc5e6620652f",
+      "a3_reference_a1_initial_state_sha256": "589523166d87bfe700aa271f1119e36b749ca278b96e32ea1b68fc5e6620652f",
+      "run_seed": 20260905
+    }
+  ],
+  "schema_version": "wireless-v2-w3-initialization-v1"
+}

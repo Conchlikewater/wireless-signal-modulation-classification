@@ -1,0 +1,60 @@
+{
+  "capacity_control": {
+    "full_parameter_absolute_difference": 28,
+    "full_parameter_percent_difference": 0.012467328919305213,
+    "hard_limit_percent": 2.0,
+    "safe_description": "shared-backbone comparison of temporal-position aggregation and global pooling under a near-equal parameter budget",
+    "strict_single_variable_ablation": false,
+    "target_at_most_percent": 1.0,
+    "target_satisfied": true
+  },
+  "created_at_utc": "2026-09-01T00:29:12.434507+00:00",
+  "dataset_sha256": "b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c",
+  "implementation_git_commit": "596900aa81c0b8502a05563c1986a9231b61462d",
+  "new_configurations": [
+    "A2-G",
+    "A3"
+  ],
+  "planned_new_training_run_count": 10,
+  "profiles": {
+    "A2-G": {
+      "approx_conv_linear_flops_per_sample": 8881250,
+      "configuration": "A2-G",
+      "conv_linear_macs_per_sample": 4440625,
+      "head_trainable_parameters": 132591,
+      "mac_convention": "Conv1d and Linear multiply-accumulates only; excludes BatchNorm, activation, pooling, Dropout, and bias additions",
+      "trainable_parameters": 224559
+    },
+    "A2-T": {
+      "approx_conv_linear_flops_per_sample": 8882944,
+      "configuration": "A2-T",
+      "conv_linear_macs_per_sample": 4441472,
+      "head_trainable_parameters": 132619,
+      "mac_convention": "Conv1d and Linear multiply-accumulates only; excludes BatchNorm, activation, pooling, Dropout, and bias additions",
+      "trainable_parameters": 224587
+    },
+    "A3": {
+      "approx_conv_linear_flops_per_sample": 8882944,
+      "configuration": "A3",
+      "conv_linear_macs_per_sample": 4441472,
+      "head_trainable_parameters": 132619,
+      "mac_convention": "Conv1d and Linear multiply-accumulates only; excludes BatchNorm, activation, pooling, Dropout, and bias additions",
+      "trainable_parameters": 224587
+    }
+  },
+  "protocol_version": "wireless-v2-w0-v1",
+  "reused_configuration": "A2-T from W2 A1; no retraining",
+  "run_seeds": [
+    20260901,
+    20260902,
+    20260903,
+    20260904,
+    20260905
+  ],
+  "schema_version": "wireless-v2-w3-matrix-lock-v1",
+  "scope": "fixed_validation_only",
+  "split_manifest_sha256": "48ad195d5552e3ec4e5a6d1bc4fc0f20099df8dc70f8eb78a80df95e7f5297a7",
+  "stage": "W3",
+  "test_set_used": false,
+  "w2_summary_sha256": "7c5f2513ae78903abad0781801e4f5577ec009a7203cd7a56ac5503bbaa1c00f"
+}
