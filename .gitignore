@@ -30,3 +30,4 @@ artifacts/*
 *.pt
 *.pth
 *.ckpt
+!experiments/v2/w2/**/best_checkpoint.pt
