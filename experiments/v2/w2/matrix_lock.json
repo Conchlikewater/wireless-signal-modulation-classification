@@ -1,0 +1,23 @@
+{
+  "configurations": [
+    "A0",
+    "A1"
+  ],
+  "created_at_utc": "2026-08-31T23:49:36.696037+00:00",
+  "dataset_sha256": "b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c",
+  "implementation_git_commit": "616921f073011ebd86f98314302f2a9043f55284",
+  "planned_run_count": 10,
+  "protocol_version": "wireless-v2-w0-v1",
+  "run_seeds": [
+    20260901,
+    20260902,
+    20260903,
+    20260904,
+    20260905
+  ],
+  "schema_version": "wireless-v2-w2-matrix-lock-v1",
+  "scope": "fixed_validation_only",
+  "split_manifest_sha256": "48ad195d5552e3ec4e5a6d1bc4fc0f20099df8dc70f8eb78a80df95e7f5297a7",
+  "stage": "W2",
+  "test_set_used": false
+}
