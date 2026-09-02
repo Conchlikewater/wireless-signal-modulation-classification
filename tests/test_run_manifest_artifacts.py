@@ -20,20 +20,20 @@ class RunManifestArtifactTests(unittest.TestCase):
     manifest_root = repository_root / "experiments" / "v2" / "run_manifests"
     catalog_path = manifest_root / "catalog.json"
     expected_catalog_sha256 = (
-        "5d6064899b2b9ef78f9c44e1c4ef7cdce7f9b06a370e9fda094370ffd21e2b2f"
+        "c7bbf24449691b1ed20e7e5266159551dc1fe1690b95bac2ca7f1e748db95ccb"
     )
 
     def test_catalog_contains_every_frozen_configuration_seed_pair(self) -> None:
         self.assertEqual(sha256_file(self.catalog_path), self.expected_catalog_sha256)
         catalog = load_json_object(self.catalog_path)
         self.assertEqual(catalog["schema_version"], RUN_CATALOG_SCHEMA)
-        self.assertEqual(catalog["run_count"], 20)
+        self.assertEqual(catalog["run_count"], 25)
         self.assertEqual(catalog["scope"], "fixed_validation_only")
         self.assertFalse(catalog["test_set_used"])
-        self.assertEqual(len(catalog["errata"]), 1)
-        erratum = catalog["errata"][0]
-        errata_path = self.repository_root / erratum["errata_file"]
-        self.assertEqual(sha256_file(errata_path), erratum["errata_sha256"])
+        self.assertEqual(len(catalog["errata"]), 2)
+        for erratum in catalog["errata"]:
+            errata_path = self.repository_root / erratum["errata_file"]
+            self.assertEqual(sha256_file(errata_path), erratum["errata_sha256"])
 
         observed = {
             (record["configuration"], record["run_seed"])
@@ -41,7 +41,7 @@ class RunManifestArtifactTests(unittest.TestCase):
         }
         expected = {
             (configuration, run_seed)
-            for configuration in ("A0", "A1", "A2-G", "A3")
+            for configuration in ("A0", "A1", "A2-G", "A3", "A2-L")
             for run_seed in V2_RUN_SEEDS
         }
         self.assertEqual(observed, expected)
@@ -66,7 +66,10 @@ class RunManifestArtifactTests(unittest.TestCase):
             self.assertEqual(verification["run_id"], record["run_id"])
             self.assertEqual(verification["data_status"], "not_checked")
             self.assertFalse(verification["test_set_used"])
-            expected_file_count = 8 if manifest["configuration"] == "A2-G" else 7
+            expected_file_count = {
+                "A2-G": 8,
+                "A2-L": 9,
+            }.get(manifest["configuration"], 7)
             self.assertEqual(
                 verification["verified_repository_file_count"],
                 expected_file_count,

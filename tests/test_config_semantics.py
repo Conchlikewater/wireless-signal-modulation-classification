@@ -33,7 +33,7 @@ class ConfigSemanticsTests(unittest.TestCase):
     def _instantiate_model(configuration: str) -> nn.Module:
         if configuration in {"A0", "A1"}:
             return create_w2_model(configuration, num_classes=11)
-        if configuration == "A2-G":
+        if configuration in {"A2-G", "A2-L"}:
             reference = TemporalCNN1D(num_classes=11, dropout=0.3)
             return create_w3_model(
                 configuration,

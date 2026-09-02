@@ -12,6 +12,18 @@
       "errata_file": "experiments/v2/w3/A3/ERRATA.json",
       "errata_sha256": "e148281a2f1c2030b1b0fbdd2f688b9555dba71385c633d51e80bc8a685cfb28",
       "field": "config.dropout"
+    },
+    {
+      "affected_runs": [
+        "w5-a2-l-20260901",
+        "w5-a2-l-20260902",
+        "w5-a2-l-20260903",
+        "w5-a2-l-20260904",
+        "w5-a2-l-20260905"
+      ],
+      "errata_file": "experiments/v2/w5/SUMMARY_ERRATA.json",
+      "errata_sha256": "2a899c001804068588ee97eef941f92a110bab15d44f204a2a536e04789584fb",
+      "field": "w5_summary.hypothesis_evaluation.verdict"
     }
   ],
   "records": [
@@ -154,11 +166,47 @@
       "manifest_sha256": "52fcbb33581d5251f17d8ba12b52db1610c7a503f371ec9ed81bc33ec660a05e",
       "run_id": "w3-a3-20260905",
       "run_seed": 20260905
+    },
+    {
+      "configuration": "A2-L",
+      "manifest_file": "experiments/v2/run_manifests/w5-a2-l-20260901.json",
+      "manifest_sha256": "33c9c1667963193f040b7a12ff45fbdab94995cfedf698d998528b5c7738b100",
+      "run_id": "w5-a2-l-20260901",
+      "run_seed": 20260901
+    },
+    {
+      "configuration": "A2-L",
+      "manifest_file": "experiments/v2/run_manifests/w5-a2-l-20260902.json",
+      "manifest_sha256": "5a27a83a08374040bbddf83205de68f6a824608ba319ab044c75cfccf6162704",
+      "run_id": "w5-a2-l-20260902",
+      "run_seed": 20260902
+    },
+    {
+      "configuration": "A2-L",
+      "manifest_file": "experiments/v2/run_manifests/w5-a2-l-20260903.json",
+      "manifest_sha256": "499b396b6355b12a54858639ff0b8eebc1828fd9138167f24413d87f47f1bb50",
+      "run_id": "w5-a2-l-20260903",
+      "run_seed": 20260903
+    },
+    {
+      "configuration": "A2-L",
+      "manifest_file": "experiments/v2/run_manifests/w5-a2-l-20260904.json",
+      "manifest_sha256": "9e49b4cae07de0088e1b7727c9d26de2008e16179c18d6dde0184b7b80dbbe44",
+      "run_id": "w5-a2-l-20260904",
+      "run_seed": 20260904
+    },
+    {
+      "configuration": "A2-L",
+      "manifest_file": "experiments/v2/run_manifests/w5-a2-l-20260905.json",
+      "manifest_sha256": "0a00156f4128435582beec3896d5df33ce17a94d6850515dfe16fef129fa02e0",
+      "run_id": "w5-a2-l-20260905",
+      "run_seed": 20260905
     }
   ],
-  "replay_code_git_commit": "7c155eb4d03e43248fc4ada21f18da7015a7c510",
-  "run_count": 20,
+  "replay_code_git_commit": "40b7c9f76e92833d5ed76f4e29d17125afd78c52",
+  "run_count": 25,
   "schema_version": "wireless-v2-run-catalog-v1",
   "scope": "fixed_validation_only",
-  "test_set_used": false
+  "test_set_used": false,
+  "updated_at_utc": "2026-09-02T11:24:08.049960+00:00"
 }
