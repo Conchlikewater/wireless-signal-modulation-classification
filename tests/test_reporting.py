@@ -7,7 +7,10 @@ from pathlib import Path
 
 from signal_modulation.reporting import (
     load_result,
+    render_class_snr_grid_svg,
+    render_confusion_grid_svg,
     render_confusion_matrix_svg,
+    render_multi_snr_accuracy_svg,
     render_snr_accuracy_svg,
     render_snr_comparison_svg,
 )
@@ -112,3 +115,32 @@ class ReportingTests(unittest.TestCase):
             )
 
             self.assertIn("Final Test Matrix", path.read_text(encoding="utf-8"))
+
+    def test_multi_arm_analysis_figures_render_without_optional_dependencies(self) -> None:
+        snr_rows = [
+            {"snr": -10.0, "accuracy_mean": 0.25, "accuracy_sample_std": 0.02},
+            {"snr": 10.0, "accuracy_mean": 0.80, "accuracy_sample_std": 0.01},
+        ]
+        confusion = {"A0": [[8, 2], [3, 7]], "A1": [[9, 1], [1, 9]]}
+        class_snr = {"A0": [[0.5, 0.8], [0.4, 0.7]], "A1": [[0.6, 0.9], [0.5, 0.8]]}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            snr_path = render_multi_snr_accuracy_svg(
+                {"A0": snr_rows, "A1": snr_rows}, root / "snr.svg"
+            )
+            confusion_path = render_confusion_grid_svg(
+                confusion,
+                ["BPSK", "QPSK"],
+                root / "confusion.svg",
+                title="High SNR",
+            )
+            heatmap_path = render_class_snr_grid_svg(
+                class_snr,
+                ["BPSK", "QPSK"],
+                [-10, 10],
+                root / "heatmap.svg",
+            )
+
+            self.assertIn("A0", snr_path.read_text(encoding="utf-8"))
+            self.assertIn("High SNR", confusion_path.read_text(encoding="utf-8"))
+            self.assertIn("Class × SNR", heatmap_path.read_text(encoding="utf-8"))

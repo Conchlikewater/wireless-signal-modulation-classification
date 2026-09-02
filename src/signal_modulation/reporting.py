@@ -251,3 +251,203 @@ def render_confusion_matrix_svg(
             lines.append(f'<text x="{x+cell/2:.2f}" y="{y+cell/2+4:.2f}" text-anchor="middle" class="value" style="fill:{text_fill}">{ratio*100:.1f}</text>')
     lines.append("</svg>")
     return _write_svg(path, lines)
+
+
+def render_multi_snr_accuracy_svg(
+    series_by_name: Mapping[str, Sequence[Mapping[str, float]]],
+    path: str | Path,
+    *,
+    title: str = "Five-seed Validation Accuracy by SNR",
+) -> Path:
+    """Render multiple mean SNR curves with one-sigma dashed envelopes."""
+
+    if not series_by_name:
+        raise ValueError("at least one SNR series is required")
+    converted: dict[str, list[tuple[float, float, float]]] = {}
+    expected_snrs: list[float] | None = None
+    for name, rows in series_by_name.items():
+        values = sorted(
+            (
+                float(row["snr"]),
+                float(row["accuracy_mean"]),
+                float(row["accuracy_sample_std"]),
+            )
+            for row in rows
+        )
+        if not values or any(
+            not all(math.isfinite(value) for value in row) for row in values
+        ):
+            raise ValueError("SNR summary rows must contain finite values")
+        if any(not 0.0 <= mean <= 1.0 or std < 0.0 for _, mean, std in values):
+            raise ValueError("SNR accuracy mean/std values are invalid")
+        snrs = [row[0] for row in values]
+        if expected_snrs is None:
+            expected_snrs = snrs
+        elif snrs != expected_snrs:
+            raise ValueError("all arms must use the same SNR values")
+        converted[str(name)] = values
+
+    assert expected_snrs is not None
+    width, height = 1080, 620
+    left, top, right, bottom = 90, 70, 45, 85
+    plot_width = width - left - right
+    plot_height = height - top - bottom
+    minimum_snr, maximum_snr = expected_snrs[0], expected_snrs[-1]
+
+    def point(snr: float, accuracy: float) -> tuple[float, float]:
+        x = left + (snr - minimum_snr) / (maximum_snr - minimum_snr) * plot_width
+        y = top + (1.0 - min(1.0, max(0.0, accuracy))) * plot_height
+        return x, y
+
+    colors = ("#6b7280", "#047857", "#2563eb", "#c2410c", "#7c3aed")
+    lines = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#ffffff"/>',
+        '<style>text{font-family:Arial,sans-serif;fill:#1f2937}.axis{stroke:#374151;stroke-width:1.5}.grid{stroke:#e5e7eb;stroke-width:1}.label{font-size:13px}.title{font-size:22px;font-weight:700}.legend{font-size:13px;font-weight:600}</style>',
+        f'<text x="{width/2:.2f}" y="32" text-anchor="middle" class="title">{html.escape(title)}</text>',
+    ]
+    for index in range(6):
+        accuracy = index / 5
+        y = top + (1.0 - accuracy) * plot_height
+        lines.append(f'<line x1="{left}" y1="{y:.2f}" x2="{width-right}" y2="{y:.2f}" class="grid"/>')
+        lines.append(f'<text x="{left-12}" y="{y+4:.2f}" text-anchor="end" class="label">{accuracy:.1f}</text>')
+    for index, snr in enumerate(expected_snrs):
+        x, _ = point(snr, 0.0)
+        lines.append(f'<line x1="{x:.2f}" y1="{top}" x2="{x:.2f}" y2="{height-bottom}" class="grid"/>')
+        if index % 2 == 0 or index == len(expected_snrs) - 1:
+            lines.append(f'<text x="{x:.2f}" y="{height-bottom+24}" text-anchor="middle" class="label">{snr:g}</text>')
+    lines.extend(
+        [
+            f'<line x1="{left}" y1="{top}" x2="{left}" y2="{height-bottom}" class="axis"/>',
+            f'<line x1="{left}" y1="{height-bottom}" x2="{width-right}" y2="{height-bottom}" class="axis"/>',
+            f'<text x="{left+plot_width/2:.2f}" y="{height-24}" text-anchor="middle" class="label">SNR (dB)</text>',
+            f'<text x="24" y="{top+plot_height/2:.2f}" text-anchor="middle" class="label" transform="rotate(-90 24 {top+plot_height/2:.2f})">Validation Accuracy</text>',
+        ]
+    )
+    for arm_index, (name, values) in enumerate(converted.items()):
+        color = colors[arm_index % len(colors)]
+        for offset in (-1.0, 1.0):
+            envelope = " ".join(
+                f"{point(snr, mean + offset * std)[0]:.2f},{point(snr, mean + offset * std)[1]:.2f}"
+                for snr, mean, std in values
+            )
+            lines.append(f'<polyline points="{envelope}" fill="none" stroke="{color}" stroke-width="1" stroke-dasharray="4 4" opacity="0.55"/>')
+        points = " ".join(
+            f"{point(snr, mean)[0]:.2f},{point(snr, mean)[1]:.2f}"
+            for snr, mean, _ in values
+        )
+        lines.append(f'<polyline points="{points}" fill="none" stroke="{color}" stroke-width="3"/>')
+        legend_x = 610 + (arm_index % 2) * 210
+        legend_y = 48 + (arm_index // 2) * 18
+        lines.append(f'<line x1="{legend_x}" y1="{legend_y}" x2="{legend_x+28}" y2="{legend_y}" stroke="{color}" stroke-width="3"/>')
+        lines.append(f'<text x="{legend_x+34}" y="{legend_y+4}" class="legend">{html.escape(name)}</text>')
+    lines.append("</svg>")
+    return _write_svg(path, lines)
+
+
+def render_confusion_grid_svg(
+    matrices: Mapping[str, Sequence[Sequence[int]]],
+    labels: Sequence[str],
+    path: str | Path,
+    *,
+    title: str,
+) -> Path:
+    """Render row-normalized confusion matrices for several arms in one SVG."""
+
+    if not matrices or not labels:
+        raise ValueError("confusion grid requires matrices and labels")
+    class_count = len(labels)
+    columns = 2
+    rows = math.ceil(len(matrices) / columns)
+    cell = 31
+    panel_width = 150 + class_count * cell + 35
+    panel_height = 105 + class_count * cell + 35
+    width = columns * panel_width
+    height = 60 + rows * panel_height
+    lines = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#ffffff"/>',
+        '<style>text{font-family:Arial,sans-serif;fill:#1f2937}.title{font-size:22px;font-weight:700}.panel{font-size:17px;font-weight:700}.label{font-size:9px}.value{font-size:7px;font-weight:600}</style>',
+        f'<text x="{width/2:.2f}" y="30" text-anchor="middle" class="title">{html.escape(title)}</text>',
+    ]
+    for panel_index, (name, matrix) in enumerate(matrices.items()):
+        converted = [[int(value) for value in row] for row in matrix]
+        if len(converted) != class_count or any(len(row) != class_count for row in converted):
+            raise ValueError("each confusion matrix must match labels")
+        origin_x = (panel_index % columns) * panel_width + 135
+        origin_y = 60 + (panel_index // columns) * panel_height + 80
+        lines.append(f'<text x="{origin_x+class_count*cell/2:.2f}" y="{origin_y-54}" text-anchor="middle" class="panel">{html.escape(name)}</text>')
+        for index, label in enumerate(labels):
+            center_x = origin_x + index * cell + cell / 2
+            center_y = origin_y + index * cell + cell / 2
+            escaped = html.escape(str(label))
+            lines.append(f'<text x="{origin_x-8}" y="{center_y+3:.2f}" text-anchor="end" class="label">{escaped}</text>')
+            lines.append(f'<text x="{center_x:.2f}" y="{origin_y-7}" text-anchor="start" class="label" transform="rotate(-45 {center_x:.2f} {origin_y-7})">{escaped}</text>')
+        for row_index, row in enumerate(converted):
+            row_total = sum(row)
+            if row_total <= 0:
+                raise ValueError("confusion rows require samples")
+            for column_index, count in enumerate(row):
+                ratio = count / row_total
+                shade = round(247 - 210 * ratio)
+                fill = f"rgb({shade},{min(251, shade+12)},{255})"
+                text_fill = "#ffffff" if ratio >= 0.55 else "#111827"
+                x = origin_x + column_index * cell
+                y = origin_y + row_index * cell
+                lines.append(f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" fill="{fill}" stroke="#ffffff"/>')
+                lines.append(f'<text x="{x+cell/2:.2f}" y="{y+cell/2+2.5:.2f}" text-anchor="middle" class="value" style="fill:{text_fill}">{ratio*100:.0f}</text>')
+    lines.append("</svg>")
+    return _write_svg(path, lines)
+
+
+def render_class_snr_grid_svg(
+    matrices: Mapping[str, Sequence[Sequence[float]]],
+    labels: Sequence[str],
+    snrs: Sequence[float],
+    path: str | Path,
+    *,
+    title: str = "Class × SNR Validation Accuracy",
+) -> Path:
+    """Render per-class/SNR accuracy heatmaps for several arms."""
+
+    if not matrices or not labels or not snrs:
+        raise ValueError("class-SNR grid requires matrices, labels, and SNRs")
+    columns = 2
+    rows = math.ceil(len(matrices) / columns)
+    cell_x, cell_y = 25, 25
+    panel_width = 145 + len(snrs) * cell_x + 35
+    panel_height = 80 + len(labels) * cell_y + 45
+    width = columns * panel_width
+    height = 60 + rows * panel_height
+    lines = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" fill="#ffffff"/>',
+        '<style>text{font-family:Arial,sans-serif;fill:#1f2937}.title{font-size:22px;font-weight:700}.panel{font-size:17px;font-weight:700}.label{font-size:9px}</style>',
+        f'<text x="{width/2:.2f}" y="30" text-anchor="middle" class="title">{html.escape(title)}</text>',
+    ]
+    for panel_index, (name, matrix) in enumerate(matrices.items()):
+        converted = [[float(value) for value in row] for row in matrix]
+        if len(converted) != len(labels) or any(len(row) != len(snrs) for row in converted):
+            raise ValueError("each class-SNR matrix must match labels and SNRs")
+        if any(not 0.0 <= value <= 1.0 for row in converted for value in row):
+            raise ValueError("class-SNR accuracy must be in [0, 1]")
+        origin_x = (panel_index % columns) * panel_width + 125
+        origin_y = 60 + (panel_index // columns) * panel_height + 55
+        lines.append(f'<text x="{origin_x+len(snrs)*cell_x/2:.2f}" y="{origin_y-29}" text-anchor="middle" class="panel">{html.escape(name)}</text>')
+        for index, label in enumerate(labels):
+            center_y = origin_y + index * cell_y + cell_y / 2
+            lines.append(f'<text x="{origin_x-8}" y="{center_y+3:.2f}" text-anchor="end" class="label">{html.escape(str(label))}</text>')
+        for index, snr in enumerate(snrs):
+            if index % 2 == 0 or index == len(snrs) - 1:
+                center_x = origin_x + index * cell_x + cell_x / 2
+                lines.append(f'<text x="{center_x:.2f}" y="{origin_y+len(labels)*cell_y+17}" text-anchor="middle" class="label">{float(snr):g}</text>')
+        for row_index, row in enumerate(converted):
+            for column_index, value in enumerate(row):
+                red = round(247 - 220 * value)
+                green = round(251 - 115 * value)
+                blue = round(255 - 45 * value)
+                x = origin_x + column_index * cell_x
+                y = origin_y + row_index * cell_y
+                lines.append(f'<rect x="{x}" y="{y}" width="{cell_x}" height="{cell_y}" fill="rgb({red},{green},{blue})" stroke="#ffffff"/>')
+    lines.append("</svg>")
+    return _write_svg(path, lines)
