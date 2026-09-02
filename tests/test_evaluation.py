@@ -12,6 +12,7 @@ from signal_modulation.evaluation import (
     calculate_classification_metrics,
     calculate_snr_metrics,
     calculate_snr_segment_metrics,
+    collect_classifier_predictions,
     evaluate_classifier,
 )
 
@@ -126,6 +127,31 @@ class EvaluationTests(unittest.TestCase):
         self.assertAlmostEqual(result.classification.accuracy, 1.0)
         self.assertAlmostEqual(result.classification.macro_f1, 1.0)
         self.assertEqual(len(result.by_snr), 2)
+
+    def test_prediction_collection_exposes_raw_validation_outputs(self) -> None:
+        signals = np.zeros((2, 2, 2), dtype=np.float32)
+        signals[:, 0, :] = np.asarray([[2.0, 0.0], [0.0, 2.0]])
+        loader = create_data_loader(
+            IQSignalDataset(
+                signals,
+                np.asarray([0, 1]),
+                np.asarray([-10, 10], dtype=np.float32),
+            ),
+            batch_size=2,
+            shuffle=False,
+        )
+
+        result = collect_classifier_predictions(
+            _SignalAsLogits(),
+            loader,
+            device=torch.device("cpu"),
+            num_classes=2,
+        )
+
+        self.assertEqual(result.sample_count, 2)
+        torch.testing.assert_close(result.labels, torch.tensor([0, 1]))
+        torch.testing.assert_close(result.predictions, torch.tensor([0, 1]))
+        torch.testing.assert_close(result.snrs, torch.tensor([-10.0, 10.0]))
 
     def test_empty_evaluation_loader_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "no evaluation samples"):

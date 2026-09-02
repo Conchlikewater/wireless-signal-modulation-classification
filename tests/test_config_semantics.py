@@ -93,6 +93,18 @@ class ConfigSemanticsTests(unittest.TestCase):
         self.assertEqual(self.erratum["recorded_value"], 0.3)
         self.assertEqual(self.erratum["effective_value"], 0.0)
 
+    def test_new_a2l_arm_records_its_effective_dropout_directly(self) -> None:
+        recorded = asdict(V2ExperimentConfig(run_seed=20260901))
+
+        effective = effective_model_config(
+            "A2-L",
+            run_id="w5-a2-l-20260901",
+            recorded_config=recorded,
+        )
+
+        self.assertEqual(recorded["dropout"], 0.3)
+        self.assertEqual(effective, {"dropout": 0.3})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -54,7 +54,7 @@ def resolve_effective_dropout(
     recorded_value = recorded_config.get("dropout")
     if configuration == "A0":
         return None
-    if configuration in {"A1", "A2-G"}:
+    if configuration in {"A1", "A2-G", "A2-L"}:
         return float(recorded_value)
     if configuration != "A3":
         raise ValueError(f"unsupported configuration semantics: {configuration}")

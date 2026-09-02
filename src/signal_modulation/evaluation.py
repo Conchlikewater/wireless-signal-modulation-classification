@@ -52,6 +52,17 @@ class ClassSNRAccuracy:
     sample_counts: tuple[tuple[int, ...], ...]
 
 
+@dataclass(frozen=True, slots=True)
+class PredictionCollection:
+    """Raw labels, predictions, and SNR metadata from one evaluation pass."""
+
+    loss: float
+    sample_count: int
+    labels: Tensor
+    predictions: Tensor
+    snrs: Tensor
+
+
 def _as_cpu_long(values: Tensor, name: str) -> Tensor:
     tensor = torch.as_tensor(values).detach().cpu()
     if tensor.ndim != 1:
@@ -279,15 +290,15 @@ def calculate_snr_segment_metrics(
     return results
 
 
-def evaluate_classifier(
+def collect_classifier_predictions(
     model: nn.Module,
     data_loader: Iterable[Mapping[str, Tensor]],
     *,
     device: torch.device,
     num_classes: int,
     criterion: nn.Module | None = None,
-) -> ModelEvaluation:
-    """Run one no-gradient pass and retain labels, predictions, and SNR metadata."""
+) -> PredictionCollection:
+    """Run one no-gradient pass and return CPU prediction tensors."""
 
     loss_function = criterion or nn.CrossEntropyLoss()
     model.eval()
@@ -318,19 +329,42 @@ def evaluate_classifier(
 
     if sample_count == 0:
         raise ValueError("data loader produced no evaluation samples")
-    all_labels = torch.cat(labels)
-    all_predictions = torch.cat(predictions)
-    all_snrs = torch.cat(snrs)
-    return ModelEvaluation(
+    return PredictionCollection(
         loss=total_loss / sample_count,
         sample_count=sample_count,
+        labels=torch.cat(labels),
+        predictions=torch.cat(predictions),
+        snrs=torch.cat(snrs),
+    )
+
+
+def evaluate_classifier(
+    model: nn.Module,
+    data_loader: Iterable[Mapping[str, Tensor]],
+    *,
+    device: torch.device,
+    num_classes: int,
+    criterion: nn.Module | None = None,
+) -> ModelEvaluation:
+    """Run one no-gradient pass and calculate overall/per-SNR metrics."""
+
+    collected = collect_classifier_predictions(
+        model,
+        data_loader,
+        device=device,
+        num_classes=num_classes,
+        criterion=criterion,
+    )
+    return ModelEvaluation(
+        loss=collected.loss,
+        sample_count=collected.sample_count,
         classification=calculate_classification_metrics(
-            all_labels, all_predictions, num_classes=num_classes
+            collected.labels, collected.predictions, num_classes=num_classes
         ),
         by_snr=calculate_snr_metrics(
-            all_labels,
-            all_predictions,
-            all_snrs,
+            collected.labels,
+            collected.predictions,
+            collected.snrs,
             num_classes=num_classes,
         ),
     )

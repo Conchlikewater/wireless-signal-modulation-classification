@@ -33,3 +33,4 @@ artifacts/*
 !experiments/v2/w2/**/best_checkpoint.pt
 !experiments/v2/w3/**/best_checkpoint.pt
 !experiments/v2/w3/initial_backbones/*.pt
+!experiments/v2/w5/**/best_checkpoint.pt
