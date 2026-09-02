@@ -482,7 +482,8 @@ def _per_snr_summary(
 def evaluate_preregistered_hypothesis(
     paired_segments: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
-    high_passes = []
+    high_full_passes = []
+    high_partial_passes = []
     low_passes = []
     details = {}
     for comparator, segments in paired_segments.items():
@@ -490,24 +491,24 @@ def evaluate_preregistered_hypothesis(
         low = segments["low_snr_le_-10"]
         high_mean_pp = high["macro_f1"]["mean"] * 100.0
         low_mean_pp = low["macro_f1"]["mean"] * 100.0
-        high_pass = high_mean_pp >= 1.0 and high["positive_macro_f1_seed_count"] >= 4
+        positive_seed_count = high["positive_macro_f1_seed_count"]
+        high_full_pass = high_mean_pp >= 1.0 and positive_seed_count >= 4
+        high_partial_pass = 0.5 <= high_mean_pp < 1.0 and positive_seed_count >= 4
         low_pass = -1.0 <= low_mean_pp <= 0.5
-        high_passes.append(high_pass)
+        high_full_passes.append(high_full_pass)
+        high_partial_passes.append(high_partial_pass)
         low_passes.append(low_pass)
         details[comparator] = {
             "high_macro_f1_mean_delta_pp": high_mean_pp,
-            "high_positive_seed_count": high["positive_macro_f1_seed_count"],
+            "high_positive_seed_count": positive_seed_count,
             "low_macro_f1_mean_delta_pp": low_mean_pp,
-            "high_rule_passed": high_pass,
+            "high_full_rule_passed": high_full_pass,
+            "high_partial_band_rule_passed": high_partial_pass,
             "low_rule_passed": low_pass,
         }
-    if all(high_passes) and all(low_passes):
+    if all(high_full_passes) and all(low_passes):
         verdict = "supported"
-    elif any(
-        detail["high_macro_f1_mean_delta_pp"] >= 0.5
-        and detail["high_positive_seed_count"] >= 4
-        for detail in details.values()
-    ):
+    elif sum(high_full_passes) == 1 or any(high_partial_passes):
         verdict = "partially_supported"
     else:
         verdict = "not_supported"

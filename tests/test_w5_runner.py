@@ -46,6 +46,17 @@ class W5RunnerTests(unittest.TestCase):
 
         self.assertEqual(result["verdict"], "not_supported")
 
+    def test_failed_low_snr_rule_is_not_mislabeled_as_partial_support(self) -> None:
+        result = evaluate_preregistered_hypothesis(
+            {
+                "A2-T": _segments(0.031, 4, -0.006),
+                "A2-G": _segments(0.028, 4, -0.015),
+            }
+        )
+
+        self.assertEqual(result["verdict"], "not_supported")
+        self.assertFalse(result["comparators"]["A2-G"]["low_rule_passed"])
+
     def test_per_snr_summary_uses_all_frozen_seeds(self) -> None:
         records = {
             seed: {
