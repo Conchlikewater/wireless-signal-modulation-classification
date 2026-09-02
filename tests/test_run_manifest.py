@@ -97,6 +97,28 @@ class RunManifestTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_run_manifest(manifest, repository_root=self.repository_root)
 
+    def test_a2l_manifest_requires_effective_config_and_trainable_backbone(self) -> None:
+        result_path = (
+            self.repository_root
+            / "experiments/v2/w5/A2-L/run_seed_20260901/validation_result.json"
+        )
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        manifest = build_manifest(
+            result,
+            result_path=result_path,
+            repository_root=self.repository_root,
+            replay_code_commit="a" * 40,
+        )
+
+        validate_run_manifest(manifest)
+        self.assertEqual(manifest["source_stage"], "W5")
+        self.assertEqual(manifest["model_name"], "LSTMTemporalCNN1D")
+        self.assertEqual(manifest["training"]["effective_model_config"]["dropout"], 0.3)
+
+        manifest["training"]["effective_model_config"]["dropout"] = 0.0
+        with self.assertRaises(ValueError):
+            validate_run_manifest(manifest)
+
     def test_tampered_dependency_spec_is_rejected(self) -> None:
         manifest = self._manifest()
         manifest["provenance"]["dependency_specs"][0]["sha256"] = "0" * 64

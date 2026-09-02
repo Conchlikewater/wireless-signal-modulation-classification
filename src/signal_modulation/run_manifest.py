@@ -23,6 +23,7 @@ REPLAYABLE_CONFIGURATIONS = {
     "A1": ("W2", "TemporalCNN1D"),
     "A2-G": ("W3", "GlobalPoolingTemporalCNN1D"),
     "A3": ("W3", "TemporalCNN1D"),
+    "A2-L": ("W5", "LSTMTemporalCNN1D"),
 }
 
 
@@ -125,14 +126,22 @@ def validate_run_manifest(manifest: Mapping[str, Any]) -> None:
         raise ValueError("training config run seed does not match manifest")
     if training["config"].get("split_seed") != split.get("split_seed"):
         raise ValueError("training config split seed does not match manifest")
+    if configuration == "A2-L":
+        effective = training.get("effective_model_config")
+        if not isinstance(effective, Mapping):
+            raise ValueError("A2-L effective model config is missing")
+        if effective.get("dropout") != training["config"].get("dropout"):
+            raise ValueError("A2-L recorded and effective Dropout do not match")
+        if effective.get("lstm_hidden_size") != 127 or effective.get("lstm_steps") != 32:
+            raise ValueError("A2-L effective LSTM dimensions do not match preregistration")
 
     initialization = manifest.get("initialization")
     if configuration in {"A0", "A1"}:
         if initialization is not None:
             raise ValueError(f"{configuration} must not declare W3 initialization")
-    elif configuration == "A2-G":
+    elif configuration in {"A2-G", "A2-L"}:
         if not isinstance(initialization, Mapping):
-            raise ValueError("A2-G shared-backbone initialization is missing")
+            raise ValueError(f"{configuration} shared-backbone initialization is missing")
         _require_relative_file(
             initialization.get("shared_backbone_file"),
             "initialization.shared_backbone_file",
@@ -145,6 +154,8 @@ def validate_run_manifest(manifest: Mapping[str, Any]) -> None:
             initialization.get("shared_backbone_state_sha256"),
             "initialization.shared_backbone_state_sha256",
         )
+        if initialization.get("backbone_trainable") is not True and configuration == "A2-L":
+            raise ValueError("A2-L backbone must remain trainable")
     elif configuration == "A3":
         if not isinstance(initialization, Mapping):
             raise ValueError("A3 initialization audit is missing")
@@ -261,7 +272,7 @@ def verify_run_manifest(
         raise ValueError("historical result does not match run manifest")
 
     initialization = manifest.get("initialization")
-    if manifest["configuration"] == "A2-G":
+    if manifest["configuration"] in {"A2-G", "A2-L"}:
         backbone_relative_path = initialization["shared_backbone_file"]
         backbone_path = _repository_file(root, backbone_relative_path)
         if not backbone_path.is_file():

@@ -17,6 +17,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from scripts.run_v2_ablation_experiments import run_one_experiment as run_w3_experiment
+from scripts.run_v2_lstm_ablation import run_one_experiment as run_w5_experiment
 from scripts.run_v2_paired_experiments import run_one_experiment as run_w2_experiment
 from signal_modulation.data_integrity import sha256_file
 from signal_modulation.radioml import load_restricted_radioml_pickle
@@ -96,7 +97,7 @@ def execute_replay(
         return run_w2_experiment(**common)
 
     initialization = manifest.get("initialization") or {}
-    if manifest["configuration"] == "A2-G":
+    if manifest["configuration"] in {"A2-G", "A2-L"}:
         backbone_file = repository_root / initialization["shared_backbone_file"]
         initial_backbone = torch.load(
             backbone_file,
@@ -120,6 +121,12 @@ def execute_replay(
             ],
             "a3_initial_state_sha256": initialization["initial_state_sha256"],
         }
+    if manifest["source_stage"] == "W5":
+        common.pop("configuration")
+        return run_w5_experiment(
+            **common,
+            initialization_record=initialization_record,
+        )
     return run_w3_experiment(
         **common,
         initial_backbone=initial_backbone,

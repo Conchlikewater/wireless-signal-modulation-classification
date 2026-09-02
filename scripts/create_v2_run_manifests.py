@@ -84,6 +84,8 @@ def build_manifest(
         repository_root / "pyproject.toml",
         repository_root / "requirements-gpu.txt",
     ]
+    if configuration == "A2-L":
+        dependency_paths.append(repository_root / "experiments/v2/w5/HYPOTHESIS.md")
     checkpoint_path = repository_root / result["checkpoint_file"]
     manifest = {
         "schema_version": RUN_MANIFEST_SCHEMA,
@@ -112,6 +114,7 @@ def build_manifest(
         },
         "training": {
             "config": result["config"],
+            "effective_model_config": result.get("effective_model_config"),
             "optimizer": result["optimizer"],
             "checkpoint_selection": result["protocol"]["selection_criterion"],
         },
