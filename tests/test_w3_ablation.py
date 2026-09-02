@@ -4,7 +4,11 @@ import unittest
 
 import torch
 
-from signal_modulation.model import GlobalPoolingTemporalCNN1D, TemporalCNN1D
+from signal_modulation.model import (
+    GlobalPoolingTemporalCNN1D,
+    LSTMTemporalCNN1D,
+    TemporalCNN1D,
+)
 from signal_modulation.w3_ablation import (
     architecture_profile,
     create_w3_model,
@@ -61,6 +65,22 @@ class W3AblationTests(unittest.TestCase):
             a3["conv_linear_macs_per_sample"],
             a2t["conv_linear_macs_per_sample"],
         )
+
+    def test_a2l_loads_shared_backbone_and_matches_capacity_profile(self) -> None:
+        backbone, expected_hash = reconstruct_a2t_initial_backbone(9, num_classes=11)
+        model = create_w3_model(
+            "A2-L",
+            num_classes=11,
+            initial_backbone=backbone,
+        )
+        profile = architecture_profile("A2-L")
+
+        self.assertIsInstance(model, LSTMTemporalCNN1D)
+        self.assertEqual(state_dict_sha256(model.features.state_dict()), expected_hash)
+        self.assertEqual(profile["trainable_parameters"], 223_932)
+        self.assertEqual(profile["head_trainable_parameters"], 131_964)
+        self.assertEqual(profile["lstm_matrix_macs_per_sample"], 4_145_280)
+        self.assertEqual(profile["total_estimated_macs_per_sample"], 8_455_669)
 
     def test_unregistered_w3_model_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "unsupported W3"):

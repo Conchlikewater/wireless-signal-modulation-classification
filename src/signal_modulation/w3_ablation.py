@@ -13,9 +13,10 @@ import numpy as np
 import torch
 from torch import Tensor, nn
 
-from signal_modulation.complexity import estimate_conv_linear_macs
+from signal_modulation.complexity import estimate_conv_linear_macs, estimate_lstm_macs
 from signal_modulation.model import (
     GlobalPoolingTemporalCNN1D,
+    LSTMTemporalCNN1D,
     TemporalCNN1D,
     count_trainable_parameters,
 )
@@ -69,7 +70,7 @@ def create_w3_model(
     num_classes: int,
     initial_backbone: Mapping[str, Tensor] | None = None,
 ) -> nn.Module:
-    """Construct only the two new W3 configurations."""
+    """Construct registered W3 arms and the preregistered W5 A2-L arm."""
 
     if configuration == "A2-G":
         if initial_backbone is None:
@@ -81,6 +82,12 @@ def create_w3_model(
         if initial_backbone is not None:
             raise ValueError("A3 does not accept an A2 backbone override")
         return TemporalCNN1D(num_classes=num_classes, dropout=0.0)
+    if configuration == "A2-L":
+        if initial_backbone is None:
+            raise ValueError("A2-L requires the frozen initial backbone state")
+        model = LSTMTemporalCNN1D(num_classes=num_classes, dropout=0.3)
+        model.features.load_state_dict(initial_backbone, strict=True)
+        return model
     raise ValueError(f"unsupported W3 configuration: {configuration}")
 
 
@@ -111,20 +118,48 @@ def architecture_profile(configuration: str, *, num_classes: int = 11) -> dict[s
         model = GlobalPoolingTemporalCNN1D(num_classes=num_classes)
     elif configuration == "A3":
         model = TemporalCNN1D(num_classes=num_classes, dropout=0.0)
+    elif configuration == "A2-L":
+        model = LSTMTemporalCNN1D(num_classes=num_classes, dropout=0.3)
     else:
         raise ValueError(f"unsupported architecture profile: {configuration}")
-    macs = estimate_conv_linear_macs(model)
-    return {
+    conv_linear_macs = estimate_conv_linear_macs(model)
+    lstm_macs = estimate_lstm_macs(model)
+    total_macs = conv_linear_macs + lstm_macs
+    profile = {
         "configuration": configuration,
         "trainable_parameters": count_trainable_parameters(model),
-        "head_trainable_parameters": count_trainable_parameters(model.classifier),
-        "conv_linear_macs_per_sample": macs,
-        "approx_conv_linear_flops_per_sample": 2 * macs,
-        "mac_convention": (
-            "Conv1d and Linear multiply-accumulates only; excludes BatchNorm, "
-            "activation, pooling, Dropout, and bias additions"
+        "head_trainable_parameters": (
+            count_trainable_parameters(model.aggregation)
+            + count_trainable_parameters(model.classifier)
+            if configuration == "A2-L"
+            else count_trainable_parameters(model.classifier)
         ),
+        "conv_linear_macs_per_sample": conv_linear_macs,
     }
+    if configuration == "A2-L":
+        profile.update(
+            {
+                "lstm_matrix_macs_per_sample": lstm_macs,
+                "total_estimated_macs_per_sample": total_macs,
+                "approx_total_flops_per_sample": 2 * total_macs,
+                "mac_convention": (
+                    "Conv1d/Linear and LSTM input/recurrent matrix multiply-"
+                    "accumulates; excludes BatchNorm, activation, pooling, "
+                    "Dropout, bias additions, and LSTM elementwise gate/cell updates"
+                ),
+            }
+        )
+    else:
+        profile.update(
+            {
+                "approx_conv_linear_flops_per_sample": 2 * conv_linear_macs,
+                "mac_convention": (
+                    "Conv1d and Linear multiply-accumulates only; excludes "
+                    "BatchNorm, activation, pooling, Dropout, and bias additions"
+                ),
+            }
+        )
+    return profile
 
 
 def benchmark_inference_latency(

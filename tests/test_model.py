@@ -6,6 +6,7 @@ import torch
 
 from signal_modulation.model import (
     GlobalPoolingTemporalCNN1D,
+    LSTMTemporalCNN1D,
     SimpleCNN1D,
     TemporalCNN1D,
     count_trainable_parameters,
@@ -164,6 +165,42 @@ class GlobalPoolingTemporalCNN1DTests(unittest.TestCase):
     def test_non_frozen_sequence_length_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "sequence_length=128"):
             GlobalPoolingTemporalCNN1D(num_classes=11, sequence_length=64)
+
+
+class LSTMTemporalCNN1DTests(unittest.TestCase):
+    def test_lstm_receives_32_steps_and_returns_class_logits(self) -> None:
+        model = LSTMTemporalCNN1D(num_classes=11)
+        observed: list[tuple[int, ...]] = []
+        handle = model.aggregation.register_forward_pre_hook(
+            lambda _module, inputs: observed.append(tuple(inputs[0].shape))
+        )
+        try:
+            logits = model(torch.randn(4, 2, 128))
+        finally:
+            handle.remove()
+
+        self.assertEqual(observed, [(4, 32, 128)])
+        self.assertEqual(logits.shape, (4, 11))
+
+    def test_a2l_matches_preregistered_capacity_and_keeps_backbone_trainable(self) -> None:
+        model = LSTMTemporalCNN1D(num_classes=11)
+        loss = model(torch.randn(2, 2, 128)).sum()
+        loss.backward()
+
+        self.assertEqual(count_trainable_parameters(model.features), 91_968)
+        self.assertEqual(count_trainable_parameters(model.aggregation), 130_556)
+        self.assertEqual(count_trainable_parameters(model.classifier), 1_408)
+        self.assertEqual(count_trainable_parameters(model), 223_932)
+        self.assertAlmostEqual(abs(224_587 - 223_932) / 224_587, 0.002916, places=6)
+        self.assertIsNotNone(model.features[0].weight.grad)
+        self.assertIsNotNone(model.aggregation.weight_ih_l0.grad)
+        self.assertEqual(model.classifier[0].p, 0.3)
+
+    def test_non_frozen_a2l_dimensions_are_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "sequence_length=128"):
+            LSTMTemporalCNN1D(num_classes=11, sequence_length=64)
+        with self.assertRaisesRegex(ValueError, "hidden_size=127"):
+            LSTMTemporalCNN1D(num_classes=11, hidden_size=128)
 
 
 if __name__ == "__main__":

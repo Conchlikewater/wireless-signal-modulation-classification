@@ -63,3 +63,60 @@ def estimate_conv_linear_macs(
             handle.remove()
         model.train(was_training)
     return macs
+
+
+def estimate_lstm_macs(
+    model: nn.Module,
+    *,
+    channels: int = 2,
+    sequence_length: int = 128,
+) -> int:
+    """Estimate matrix MACs inside standard LSTM gates at batch size one.
+
+    The estimate includes input/recurrent matrix products for all four gates and
+    excludes bias additions, sigmoid/tanh, and elementwise cell-state updates.
+    """
+
+    if channels <= 0 or sequence_length <= 0:
+        raise ValueError("channels and sequence_length must be greater than zero")
+    macs = 0
+    hooks: list[torch.utils.hooks.RemovableHandle] = []
+
+    def lstm_hook(
+        module: nn.LSTM,
+        inputs: tuple[Tensor, ...],
+        _output: tuple[Tensor, tuple[Tensor, Tensor]],
+    ) -> None:
+        nonlocal macs
+        if module.proj_size:
+            raise ValueError("projected LSTMs are outside the estimator convention")
+        sequence = inputs[0]
+        if module.batch_first:
+            batch_size, steps = int(sequence.shape[0]), int(sequence.shape[1])
+        else:
+            steps, batch_size = int(sequence.shape[0]), int(sequence.shape[1])
+        directions = 2 if module.bidirectional else 1
+        for layer in range(module.num_layers):
+            layer_input = module.input_size if layer == 0 else module.hidden_size * directions
+            macs += (
+                batch_size
+                * steps
+                * directions
+                * 4
+                * module.hidden_size
+                * (layer_input + module.hidden_size)
+            )
+
+    for module in model.modules():
+        if isinstance(module, nn.LSTM):
+            hooks.append(module.register_forward_hook(lstm_hook))
+    was_training = model.training
+    try:
+        model.eval()
+        with torch.inference_mode():
+            model(torch.zeros(1, channels, sequence_length))
+    finally:
+        for handle in hooks:
+            handle.remove()
+        model.train(was_training)
+    return macs

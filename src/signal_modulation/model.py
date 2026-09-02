@@ -171,6 +171,73 @@ class GlobalPoolingTemporalCNN1D(nn.Module):
         return self.classifier(flattened)
 
 
+class LSTMTemporalCNN1D(nn.Module):
+    """Shared TemporalCNN backbone with a capacity-controlled LSTM aggregator."""
+
+    def __init__(
+        self,
+        num_classes: int,
+        *,
+        sequence_length: int = 128,
+        hidden_size: int = 127,
+        dropout: float = 0.3,
+    ) -> None:
+        super().__init__()
+        if num_classes < 2:
+            raise ValueError("num_classes must be at least two")
+        if sequence_length != 128:
+            raise ValueError("the frozen A2-L structure requires sequence_length=128")
+        if hidden_size != 127:
+            raise ValueError("the frozen A2-L capacity budget requires hidden_size=127")
+        if not math.isfinite(dropout) or not 0.0 <= dropout < 1.0:
+            raise ValueError("dropout must be finite and in [0, 1)")
+
+        self.num_classes = num_classes
+        self.sequence_length = sequence_length
+        self.hidden_size = hidden_size
+        self.dropout = dropout
+        self.features = nn.Sequential(
+            nn.Conv1d(in_channels=2, out_channels=64, kernel_size=7, padding=3),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2),
+            nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5, padding=2),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2),
+            nn.Conv1d(in_channels=128, out_channels=128, kernel_size=3, padding=1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+        )
+        self.aggregation = nn.LSTM(
+            input_size=128,
+            hidden_size=hidden_size,
+            num_layers=1,
+            batch_first=True,
+            bidirectional=False,
+            bias=True,
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=dropout),
+            nn.Linear(in_features=hidden_size, out_features=num_classes),
+        )
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        if inputs.ndim != 3 or inputs.shape[1] != 2:
+            raise ValueError("inputs must have shape (batch, 2, length)")
+        if inputs.shape[0] == 0:
+            raise ValueError("inputs require a non-empty batch")
+        if inputs.shape[2] != self.sequence_length:
+            raise ValueError(
+                f"inputs must use the configured sequence length {self.sequence_length}"
+            )
+
+        features = self.features(inputs)
+        sequence = features.transpose(1, 2)
+        outputs, _state = self.aggregation(sequence)
+        return self.classifier(outputs[:, -1, :])
+
+
 def count_trainable_parameters(model: nn.Module) -> int:
     """Count parameters that will be updated by an optimizer."""
 

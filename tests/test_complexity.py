@@ -2,9 +2,10 @@
 
 import unittest
 
-from signal_modulation.complexity import estimate_conv_linear_macs
+from signal_modulation.complexity import estimate_conv_linear_macs, estimate_lstm_macs
 from signal_modulation.model import (
     GlobalPoolingTemporalCNN1D,
+    LSTMTemporalCNN1D,
     TemporalCNN1D,
     count_trainable_parameters,
 )
@@ -38,6 +39,12 @@ class ComplexityTests(unittest.TestCase):
     def test_invalid_input_shape_for_macs_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             estimate_conv_linear_macs(TemporalCNN1D(num_classes=11), channels=0)
+
+    def test_a2l_lstm_macs_use_the_preregistered_gate_convention(self) -> None:
+        model = LSTMTemporalCNN1D(num_classes=11)
+
+        self.assertEqual(estimate_conv_linear_macs(model), 4_310_389)
+        self.assertEqual(estimate_lstm_macs(model), 4_145_280)
 
 
 if __name__ == "__main__":
