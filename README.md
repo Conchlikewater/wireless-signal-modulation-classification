@@ -19,6 +19,8 @@ V2正式运行包含4个配置×5个预注册run seed：
 
 下表全部是固定validation上的五seed `mean ± sample std`，不是新的test成绩，也不表示统计显著性。
 
+> **必要偏差声明：** best checkpoint由validation loss选出，报告的Accuracy和Macro F1也在同一validation集上计算，因此这些数字带有模型选择造成的乐观偏差。它们适合比较冻结开发协议内的配置，但不能替代真正独立的最终测试或域外泛化证据。
+
 | 配置 | Validation Accuracy | Validation Macro F1 | 参数量 | 技术判断 |
 |---|---:|---:|---:|---|
 | A0 SimpleCNN | 42.26% ± 2.08 pp | 40.24% ± 2.52 pp | 11,499 | 教学基线 |
@@ -189,6 +191,7 @@ V1 test结果没有用于当时继续调参，但test已经启封，因此V2禁�
 - 极低SNR接近11分类机会水平；A2-T在`-20 dB`的五seed平均Accuracy约9.28%；
 - A2-T在`0 dB`及以上平均Accuracy约77%–82%，但仍存在QAM16/QAM64和WBFM/AM-DSB等混淆；
 - 所有V2结果只适用于RadioML 2016.10A固定validation和五个预注册seed；
+- best checkpoint选择与主指标报告使用同一validation，因此结果带有乐观偏差；
 - 没有真实空口、外部独立数据或生产服务结论；
 - 参数量接近不等于函数表达能力相同；
 - 五个seed不支持统计显著性结论。

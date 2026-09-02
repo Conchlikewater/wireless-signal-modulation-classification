@@ -13,6 +13,8 @@ V2 Core在不重新使用V1 test的前提下，完成了固定开发边界、五
 - A3去掉Dropout后平均Macro F1降低约`1.08`个百分点、波动增大，不支持移除当前`p=0.3`；
 - V2 Core没有新的独立test，因此以上都是固定validation上的开发阶段结论，不是新的最终泛化成绩。
 
+必要偏差声明：每次运行的best checkpoint由最低validation loss选出，随后Accuracy和Macro F1仍在同一validation上报告；跨模型选择也使用这组固定validation结果。因此主打数字存在模型选择造成的乐观偏差，只能作为当前开发协议内的比较证据，不能当作独立最终泛化性能。
+
 A3限定：W3工厂在实现提交`596900a`中实际构造`TemporalCNN1D(dropout=0.0)`，但通用`V2ExperimentConfig`的默认`dropout=0.3`被序列化进5份A3 JSON及对应run manifest。原始产物不覆盖；`experiments/v2/w3/A3/ERRATA.json`提供机器可读的effective值。该缺陷影响配置记录准确性，不改变实际训练模型或已报告指标。
 
 ## 2. 数据与评测边界
@@ -28,6 +30,8 @@ A3限定：W3工厂在实现提交`596900a`中实际构造`TemporalCNN1D(dropout
 - V2没有创建test DataLoader、没有读取V1 test信号/标签、没有重新推理，也没有把历史test指标纳入V2汇总。
 
 V1 test已在历史阶段启封。V1的56.38% Accuracy和56.26% Macro F1只能保留为“一次性历史验收记录”，不能用于V2模型选择，也不能重新包装为V2 test结果。
+
+本轮没有获得再次启封V1 test的单独人类决策，因此没有为量化上述乐观偏差而重跑test；现有V1历史数字也不进入V2模型选择或纠正版汇总。
 
 ## 3. 冻结训练口径
 
