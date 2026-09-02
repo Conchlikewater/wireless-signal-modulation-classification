@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-- 当前阶段：W0–W4开发阶段已完成；Wireless发布纠错进行中，原最终冻结结论已撤销
+- 当前阶段：W-A、W-B、W-C已完成；W-D交付打包待执行，原最终冻结结论仍保持撤销
 - 真实开工日期：2026-08-31
 - ⑤ 拥有权验证：已完成
 - 已完成阶段：W0、W1、W2、W3、W4
@@ -24,6 +24,16 @@
 - B-2使用四个arm×五个历史checkpoint在固定validation重新推理；每次总体Accuracy/Macro F1均与历史JSON一致，未训练、未访问V1 test。
 - 产物包括四arm五seed SNR曲线、高/低SNR混淆矩阵、class×SNR热力图和机器可读summary；147项完整测试通过。
 - B-3确认低SNR主要发生向AM-SSB的预测塌缩；高SNR仍有QAM16/QAM64和WBFM/AM-DSB双向混淆。星座嵌套与音频静默仅作机制假设，没有包装成已证因果。
+
+### A2-L扩展 W-C（已完成）
+
+- C-0在任何模型代码和结果之前提交`experiments/v2/w5/HYPOTHESIS.md`（`bb7c6ec`），冻结结构、五个seed、高/低SNR联合判据和“不支持/部分支持/支持”规则。
+- C-1实测A2-L为共享可训练backbone输出32步后接单层LSTM：223,932参数，比A2-T少655个（`0.292%`）；估算8,455,669 MACs/样本。
+- C-2按五个冻结seed完成5次正式train/validation运行，无失败、重跑或seed替换；未创建test DataLoader、未访问V1 test信号/标签或推理结果。
+- A2-L Accuracy为`56.76% ± 2.08 pp`，Macro F1为`58.28% ± 2.61 pp`；相对A2-T/A2-G总体Macro F1 paired delta为`+2.80 ± 2.40 pp / +2.55 ± 2.44 pp`。
+- 高SNR对两者的Macro F1 paired delta为`+3.13 ± 3.29 pp / +2.79 ± 3.35 pp`且均4/5同向；低SNR相对A2-G为`-1.47 ± 3.26 pp`，超出冻结边界，故联合假设正式判为“不支持”。
+- 首次汇总器曾误标为“部分支持”。原汇总未覆盖，新增`SUMMARY_ERRATA.json`和`w5_summary_corrected.json`；只纠正结论标签和重跑确定性汇总，没有重训。
+- 5个checkpoint均通过严格加载与哈希校验；catalog已从20次追加到25次，旧20份run manifest仍保持字节不变。当前163项完整测试通过。
 
 ### W0
 
@@ -118,10 +128,10 @@
 
 ## 未决问题
 
-- 当前阻塞纠正版发布：W-C A2-L、W-D交付打包、纠正版最终审计与远端CI尚未完成。
+- 当前阻塞纠正版发布：W-D交付打包、纠正版最终审计与远端CI尚未完成。
 - 当前`main`的V2提交尚未推送到`origin/main`；远端仍停在V1提交`f9668db`。这不影响本地证据，但意味着远端备份和远端CI尚未覆盖V2。
 - V1历史56.38% test结果仍只有历史文档与图表，原V1 checkpoint和JSON不在当前`artifacts/`；因此它只能作为历史记录，不能声称当前可独立重算。V2的20次validation运行不受此问题影响，其JSON和checkpoint均已提交并通过哈希测试。
-- V2 Core没有新的独立test、真实空口数据或跨域结果；这些是明确的能力边界，不是本次实现遗漏。
+- V2 Core没有新的独立test、真实空口数据或跨域结果；A2-L也只有固定validation证据。这些是明确的能力边界，不是本次实现遗漏。
 
 ## W4最终关闭条件
 

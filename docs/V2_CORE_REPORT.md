@@ -2,7 +2,7 @@
 
 ## 1. 结论摘要
 
-V2 Core在不重新使用V1 test的前提下，完成了固定开发边界、五个预注册run seed、A0/A1成对模型对照、两条容量受控消融、完整原始产物和单次运行manifest复现入口。
+V2 Core在不重新使用V1 test的前提下，完成了固定开发边界、五个预注册run seed、A0/A1成对模型对照、两条原W3消融、预注册A2-L扩展、完整原始产物和单次运行manifest复现入口。
 
 > 发布状态（2026-09-02）：开发阶段完成，发布纠错进行中。原最终冻结审计漏掉A3的元数据语义不一致，原“无P0阻塞项”结论已经撤销；纠正版发布审计通过前，本报告不能作为最终发布状态证明。
 
@@ -11,6 +11,7 @@ V2 Core在不重新使用V1 test的前提下，完成了固定开发边界、五
 - 相比A0，A1在五个seed下的validation Macro F1平均提高`15.23`个百分点，五个paired delta方向全部为正；
 - A2-G的平均Macro F1只比A2-T高约`0.25`个百分点，差异小于配对波动且方向不一致，不足以支持稳定结构优势；
 - A3去掉Dropout后平均Macro F1降低约`1.08`个百分点、波动增大，不支持移除当前`p=0.3`；
+- A2-L总体Macro F1为`58.28% ± 2.61 pp`，但低SNR相对A2-G退化超出预注册边界，联合假设判为“不支持”；它的估算MACs约为A2-T的1.90倍，因此保留为实验候选，不替换默认实现；
 - V2 Core没有新的独立test，因此以上都是固定validation上的开发阶段结论，不是新的最终泛化成绩。
 
 必要偏差声明：每次运行的best checkpoint由最低validation loss选出，随后Accuracy和Macro F1仍在同一validation上报告；跨模型选择也使用这组固定validation结果。因此主打数字存在模型选择造成的乐观偏差，只能作为当前开发协议内的比较证据，不能当作独立最终泛化性能。
@@ -78,8 +79,13 @@ V1 test已在历史阶段启封。V1的56.38% Accuracy和56.26% Macro F1只能�
 | A3 | 20260903 | 54.88% | 55.13% | 6 | 41.09 |
 | A3 | 20260904 | 53.83% | 54.70% | 9 | 53.56 |
 | A3 | 20260905 | 55.67% | 56.72% | 7 | 45.72 |
+| A2-L | 20260901 | 59.63% | 61.88% | 8 | 90.43 |
+| A2-L | 20260902 | 56.53% | 57.12% | 6 | 77.28 |
+| A2-L | 20260903 | 54.57% | 55.63% | 2 | 44.85 |
+| A2-L | 20260904 | 55.11% | 56.65% | 4 | 60.32 |
+| A2-L | 20260905 | 57.96% | 60.09% | 9 | 98.32 |
 
-20条结果均保留，没有挑选最高seed。基础设施失败、NaN、重跑和seed替换均为0。
+25条结果均保留，没有挑选最高seed。基础设施失败、NaN、重跑和seed替换均为0。
 
 ## 5. W2：A0与A1成对对照
 
@@ -121,6 +127,12 @@ V1 test已在历史阶段启封。V1的56.38% Accuracy和56.26% Macro F1只能�
 
 `A2-T−A3` Macro F1 paired delta为`+1.08 ± 3.54`个百分点。去除Dropout后均值下降且波动增大，但seed方向不完全一致。当前不promote A3，也不把结果外推为Dropout普遍有效。
 
+### 6.3 A2-L：LSTM聚合扩展
+
+A2-L共享每个seed的初始backbone，在32步序列上使用`LSTM(input_size=128, hidden_size=127)`，再经`Dropout(0.3)`和`Linear(127,11)`输出。它有223,932个参数，比A2-T少655个（`0.292%`）；估算8,455,669 MACs/样本，约为A2-T的1.90倍。
+
+A2-L Accuracy为`56.76% ± 2.08 pp`，Macro F1为`58.28% ± 2.61 pp`。相对A2-T/A2-G的总体Macro F1 paired delta分别为`+2.80 ± 2.40 pp`和`+2.55 ± 2.44 pp`。高SNR增益达到预注册门槛，但低SNR相对A2-G为`-1.47 ± 3.26 pp`，越过`-1.0 pp`边界，因此联合假设判为“不支持”。详细结果、首次汇总判定勘误和安全结论见`docs/A2_L_ABLATION_REPORT.md`。
+
 ## 7. SNR与错误分析
 
 A2-T在代表性SNR上的五seed均值：
@@ -146,7 +158,7 @@ A2-T在代表性SNR上的五seed均值：
 
 ## 8. 复现与审计
 
-`experiments/v2/run_manifests/catalog.json`登记20份manifest，对应4个配置×5个seed。每份manifest记录：
+`experiments/v2/run_manifests/catalog.json`登记25份manifest，对应5个配置×5个seed。每份manifest记录：
 
 - 数据路径和SHA-256；
 - split manifest、split seed和哈希；
@@ -178,9 +190,10 @@ A2-T在代表性SNR上的五seed均值：
 - 固定划分：`manifests/v2/split_manifest.json`；
 - W2汇总：`experiments/v2/w2/w2_summary.json`，SHA-256 `7c5f2513ae78903abad0781801e4f5577ec009a7203cd7a56ac5503bbaa1c00f`；
 - W3汇总：`experiments/v2/w3/w3_summary.json`，SHA-256 `b0edff36b715f68599ceb8076e371a80994ac0af4ae02e4d7af67d357eaeccc8`；
-- manifest catalog：`experiments/v2/run_manifests/catalog.json`，已登记A3勘误；
-- 原始JSON和best checkpoint：`experiments/v2/w2/`、`experiments/v2/w3/`；
-- 自动化测试：当前140项离线`unittest`全部通过；新增语义测试直接检查各arm的`nn.Dropout.p`，并验证67个受保护历史产物仍与纠错前基线字节一致；
+- A2-L纠正版汇总：`experiments/v2/w5/w5_summary_corrected.json`，SHA-256 `95eeeaaa4eb105363598584447f5f3a942900562ea264f44f662d6f0a5326e25`；
+- manifest catalog：`experiments/v2/run_manifests/catalog.json`，已登记A3元数据与W5汇总判定两项勘误；
+- 原始JSON和best checkpoint：`experiments/v2/w2/`、`experiments/v2/w3/`、`experiments/v2/w5/`；
+- 自动化测试：当前163项离线`unittest`全部通过；语义测试检查各arm的`nn.Dropout.p`，W5测试加载5个A2-L checkpoint并重算汇总，保护测试验证67个既有历史产物仍与纠错前基线字节一致；
 - W4本身没有重新训练；发布纠错阶段完成一次A3训练级replay。两阶段均未访问V1 test信号、标签或推理结果。
 
 原冻结审计的撤销原因、Git边界、远端同步状态和后续范围见`docs/FINAL_FREEZE_AUDIT.md`。
