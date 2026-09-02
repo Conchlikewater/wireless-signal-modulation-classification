@@ -2,18 +2,27 @@
 
 基于PyTorch和RadioML 2016.10A的无线信号自动调制识别项目，重点展示固定数据边界、多随机种子成对实验、容量受控消融、SNR错误分析和可审计复现。
 
-## 当前状态
+## 结果概览
 
-V2 Core的W0–W4开发阶段已完成，当前处于**发布纠错进行中**，尚未通过纠正版发布审计。项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。
+项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。当前本地纠正版已完成W-A至W-C，正在进行W-D发布打包与最终审计。
 
-V2正式运行包含4个配置×5个预注册run seed：
+![五个预注册seed下的validation Accuracy-SNR曲线](experiments/v2/analysis/accuracy_vs_snr.svg)
+
+最值得面试说明的三条结果：
+
+1. **整体架构收益**：`A1−A0` Macro F1 paired delta为`+15.23 ± 3.35 pp`，`n_pairs=5`且五个seed同向；这是固定validation上的描述性结果，不是显著性检验。
+2. **容量对齐消融的零结果**：A2-T与A2-G只差28个参数，但`A2-T−A2-G` Macro F1为`-0.25 ± 1.38 pp`且方向不一致，没有证据证明某种聚合稳定更优。
+3. **必要偏差声明**：best checkpoint由validation loss选出，Accuracy和Macro F1也在同一validation上报告，因此主打数字带有模型选择造成的乐观偏差，不能替代独立最终测试。
+
+V2正式运行包含5个配置×5个预注册run seed：
 
 - A0：SimpleCNN；
 - A1/A2-T：保留8个粗粒度时序分箱的TemporalCNN；
 - A2-G：共享TemporalCNN backbone、改用全局池化和容量受控head；
 - A3：仅把A1的Dropout从`p=0.3`改为`p=0`。
+- A2-L：共享初始backbone，在32步序列上使用容量受控LSTM聚合。
 
-所有原始JSON、best checkpoint、初始化backbone、汇总和20份run manifest均已提交且保持原字节不变。发布审计发现A3历史记录把通用配置默认值`dropout=0.3`写入JSON和manifest，但训练工厂实际构造的是`dropout=0.0`；机器可读勘误见[`experiments/v2/w3/A3/ERRATA.json`](experiments/v2/w3/A3/ERRATA.json)。当前140项离线自动化测试通过；原“最终冻结通过”结论已经撤销，纠正版发布前以本节状态为准。
+25次运行的原始JSON、best checkpoint、共享初始backbone和run manifest均已提交。最初20次W2/W3历史文件继续保持原字节不变；A3配置勘误见[`experiments/v2/w3/A3/ERRATA.json`](experiments/v2/w3/A3/ERRATA.json)，A2-L汇总判定勘误见[`experiments/v2/w5/SUMMARY_ERRATA.json`](experiments/v2/w5/SUMMARY_ERRATA.json)。当前163项离线自动化测试通过；发布结论仍以最终纠正版审计为准。
 
 ## V2 Core结果
 
@@ -27,16 +36,20 @@ V2正式运行包含4个配置×5个预注册run seed：
 | A1/A2-T TemporalCNN | 54.81% ± 0.64 pp | 55.47% ± 1.05 pp | 224,587 | 当前默认模型 |
 | A2-G 全局池化 | 55.00% ± 0.63 pp | 55.73% ± 0.64 pp | 224,559 | 差异小于波动，不promote |
 | A3 无Dropout¹ | 53.91% ± 2.30 pp | 54.40% ± 3.13 pp | 224,587 | 均值下降、波动增大，不promote |
+| A2-L LSTM聚合² | 56.76% ± 2.08 pp | 58.28% ± 2.61 pp | 223,932 | 总体较高但波动和成本更高；联合假设不支持 |
 
 主要成对结果：
 
 - `A1−A0` Macro F1 paired delta：`+15.23 ± 3.35`个百分点，`n_pairs=5`，五个seed方向全部为正；
 - `A2-T−A2-G` Macro F1 paired delta：`-0.25 ± 1.38`个百分点，方向不一致；
 - `A2-T(p=0.3)−A3(p=0)` Macro F1 paired delta：`+1.08 ± 3.54`个百分点，方向不完全一致。
+- `A2-L−A2-T/A2-G`总体Macro F1 paired delta：`+2.80 ± 2.40 / +2.55 ± 2.44`个百分点；但低SNR相对A2-G下降`1.47`个百分点，越过预注册边界。
 
-安全结论是保留A1/A2-T。A2-G的平均分略高，但约`0.25`个百分点的差异小于跨seed波动，不能包装成稳定提升；移除Dropout也没有得到可靠收益。
+安全结论是保留A1/A2-T作为默认作品集模型。A2-G是中性结果，移除Dropout没有可靠收益；A2-L显示“高SNR改善、低SNR退化、计算成本约翻倍”的真实trade-off，但预注册联合假设判为不支持，不能写成已证明的新模型提升。
 
 ¹ A3的实际模型是`Dropout(p=0.0)`，但历史JSON和run manifest的`config.dropout`误记为`0.3`。勘误只修正元数据解释，不改写原始产物，也不改变已经报告的指标。
+
+² A2-L首次汇总把联合假设误判为“部分支持”。原汇总保留，纠正版汇总和完整判定依据见[`docs/A2_L_ABLATION_REPORT.md`](docs/A2_L_ABLATION_REPORT.md)。
 
 完整原始结果、per-SNR数据、参数/MACs、延迟、限制和证据哈希见[`docs/V2_CORE_REPORT.md`](docs/V2_CORE_REPORT.md)。
 
@@ -47,7 +60,7 @@ V2正式运行包含4个配置×5个预注册run seed：
 3. **结果产生前预注册seed和矩阵**：Git提交早于正式结果，避免看到成绩后挑seed、删失败运行或改变比较规则。
 4. **跨模型看Macro F1 mean±sample std和paired delta**：不使用单次最高Accuracy选择模型；五个seed只做描述性统计。
 5. **A2只称容量受控比较**：A2-T/A2-G共享backbone且全模型参数只差28个，但head函数结构不同，不能称严格单变量实验。
-6. **不为“新模型”强行promote**：A2-G没有稳定优势，A3无Dropout没有可靠收益，因此默认仍保留A1/A2-T。
+6. **不为“新模型”强行promote**：A2-G没有稳定优势，A3无Dropout没有可靠收益；A2-L的总体均值更高，但预注册联合假设失败、波动更大且估算MACs约翻倍，因此默认仍保留A1/A2-T。
 7. **区分理论计算量和真实延迟**：参数量/MACs是确定性结构量；延迟受硬件、算子和运行环境影响。
 8. **manifest保证可审计，不夸大为绝对复现**：运行身份、配置、环境和文件哈希可以重建；跨硬件bitwise一致不作保证。
 
@@ -121,17 +134,17 @@ python -m venv .venv
 
 ## 自动化测试与CI
 
-当前140项离线测试不需要RadioML数据、GPU或API密钥：
+当前163项离线测试不需要RadioML数据、GPU或API密钥：
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-GitHub Actions在Python 3.12上安装项目、运行同一套离线测试，并解析全部Python源码。产物测试会重算W2/W3汇总、加载checkpoint、核对初始化backbone以及验证20份manifest的依赖和历史文件哈希。
+GitHub Actions在Python 3.12上安装项目、运行同一套离线测试，并解析全部Python源码。产物测试会重算W2/W3/W5汇总、加载checkpoint、核对初始化backbone以及验证25份manifest的依赖和历史文件哈希。
 
 ## 从run manifest复现一次历史运行
 
-[`experiments/v2/run_manifests/catalog.json`](experiments/v2/run_manifests/catalog.json)登记了4个配置×5个seed共20次历史运行。每份manifest包含数据、split、seed、训练配置、优化器、环境、Git commit、原始JSON、checkpoint和依赖哈希。
+[`experiments/v2/run_manifests/catalog.json`](experiments/v2/run_manifests/catalog.json)登记了5个配置×5个seed共25次运行。每份manifest包含数据、split、seed、训练配置、effective模型语义、优化器、环境、Git commit、原始JSON、checkpoint和依赖哈希。
 
 先做安全dry-run：
 
@@ -151,6 +164,16 @@ dry-run只验证哈希并打印可执行命令，不反序列化数据、不训�
 ```
 
 脚本只重新拉起manifest指定的单个配置和单个seed。它仍只创建train/validation DataLoader；输出目录已存在时拒绝覆盖。W4当时只执行dry-run；发布纠错阶段随后按预注册`±1.0`个百分点阈值执行了一次A3/20260901训练级replay，Accuracy、Macro F1、best epoch、loss和checkpoint SHA均与历史一致。记录见[`artifacts/replay/w3-a3-20260901/REPRODUCTION.md`](artifacts/replay/w3-a3-20260901/REPRODUCTION.md)。
+
+## 最小单样本推理
+
+准备一条float32、形状为`(2,128)`的NumPy `.npy`信号后，可加载默认A1 checkpoint并输出11类预测和softmax置信度：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\predict_single.py path\to\signal.npy
+```
+
+该脚本只演示“checkpoint → 单条I/Q输入 → logits → softmax → 类别/置信度”链路；它不代表生产服务，不负责原始射频采集、切窗、同步或分布外拒识。
 
 ## 训练与评测链路
 
@@ -205,7 +228,9 @@ tests/                        离线自动化测试
 manifests/v2/                 固定split manifest与索引
 experiments/v2/w2/            A0/A1五seed原始JSON与checkpoint
 experiments/v2/w3/            A2-G/A3结果、共享初始backbone与W3汇总
-experiments/v2/run_manifests/ 20份单次运行manifest与catalog
+experiments/v2/w5/            A2-L五seed结果、预注册假设、勘误与纠正版汇总
+experiments/v2/analysis/      validation错误分析JSON与SVG图表
+experiments/v2/run_manifests/ 25份单次运行manifest与catalog
 docs/                         协议、技术报告、开发状态和学习材料
 data/                         原始数据不提交Git
 artifacts/                    临时重放和本地运行输出，不覆盖正式产物
@@ -233,6 +258,8 @@ V2重点：
 - [`docs/W2_LEARNING_HANDOFF.md`](docs/W2_LEARNING_HANDOFF.md)：多seed成对实验；
 - [`docs/W3_LEARNING_HANDOFF.md`](docs/W3_LEARNING_HANDOFF.md)：容量受控消融；
 - [`docs/V2_CORE_REPORT.md`](docs/V2_CORE_REPORT.md)：完整结果与限制；
+- [`docs/ERROR_ANALYSIS.md`](docs/ERROR_ANALYSIS.md)：高低SNR、class×SNR与典型混淆；
+- [`docs/A2_L_ABLATION_REPORT.md`](docs/A2_L_ABLATION_REPORT.md)：LSTM聚合假设、结果、勘误和trade-off；
 - [`docs/FINAL_FREEZE_AUDIT.md`](docs/FINAL_FREEZE_AUDIT.md)：原冻结审计、结论撤销原因与剩余发布风险；
 - [`docs/DEV_STATE.md`](docs/DEV_STATE.md)：阶段、证据和决策记录。
 
