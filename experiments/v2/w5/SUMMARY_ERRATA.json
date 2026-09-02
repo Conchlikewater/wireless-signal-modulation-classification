@@ -1,0 +1,14 @@
+{
+  "affected_file": "experiments/v2/w5/w5_summary.json",
+  "affected_sha256": "9beca76b8e5d453da0ee232b39114a641f7aa2ce2343c895d0f14636b4d5c61a",
+  "corrected_summary_file": "experiments/v2/w5/w5_summary_corrected.json",
+  "correction_git_commit": "d83df30ca537ccb5308948c5f23f8948ddd56260",
+  "discovered_at_utc": "2026-09-02T11:18:54.238952+00:00",
+  "discovered_by": "Codex during W-C artifact audit",
+  "effective_value": "not_supported",
+  "evidence_file": "experiments/v2/w5/HYPOTHESIS.md",
+  "field": "hypothesis_evaluation.verdict",
+  "impact_assessment": "Only the categorical hypothesis verdict was wrong. The five raw validation results, checkpoints, metrics, paired deltas, parameter counts, and training decisions are unchanged; no retraining is needed.",
+  "recorded_value": "partially_supported",
+  "schema_version": "wireless-v2-w5-summary-errata-v1"
+}

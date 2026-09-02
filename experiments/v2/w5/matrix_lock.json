@@ -1,0 +1,40 @@
+{
+  "architecture_profile": {
+    "approx_total_flops_per_sample": 16911338,
+    "configuration": "A2-L",
+    "conv_linear_macs_per_sample": 4310389,
+    "head_trainable_parameters": 131964,
+    "lstm_matrix_macs_per_sample": 4145280,
+    "mac_convention": "Conv1d/Linear and LSTM input/recurrent matrix multiply-accumulates; excludes BatchNorm, activation, pooling, Dropout, bias additions, and LSTM elementwise gate/cell updates",
+    "total_estimated_macs_per_sample": 8455669,
+    "trainable_parameters": 223932
+  },
+  "capacity_control": {
+    "a2l_trainable_parameters": 223932,
+    "a2t_trainable_parameters": 224587,
+    "absolute_percent_difference": 0.2916464443623184,
+    "signed_difference": -655,
+    "strict_single_variable_ablation": false,
+    "target_at_most_percent": 1.0,
+    "target_satisfied": true
+  },
+  "configuration": "A2-L",
+  "created_at_utc": "2026-09-02T11:09:16.158602+00:00",
+  "dataset_sha256": "b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c",
+  "hypothesis_file": "experiments/v2/w5/HYPOTHESIS.md",
+  "hypothesis_sha256": "706eb8266670e9df8a7e8f047da1fc8c610ba5feddf5344c84894d3d4510fe85",
+  "implementation_git_commit": "62820b51090ce1ebbd6420856234eed2c70f085e",
+  "planned_training_run_count": 5,
+  "protocol_version": "wireless-v2-w0-v1",
+  "run_seeds": [
+    20260901,
+    20260902,
+    20260903,
+    20260904,
+    20260905
+  ],
+  "schema_version": "wireless-v2-w5-matrix-lock-v1",
+  "scope": "fixed_validation_only",
+  "split_manifest_sha256": "48ad195d5552e3ec4e5a6d1bc4fc0f20099df8dc70f8eb78a80df95e7f5297a7",
+  "test_set_used": false
+}
