@@ -8,8 +8,10 @@ from torch import nn
 
 from signal_modulation.dataset import IQSignalDataset, create_data_loader
 from signal_modulation.evaluation import (
+    calculate_class_snr_accuracy,
     calculate_classification_metrics,
     calculate_snr_metrics,
+    calculate_snr_segment_metrics,
     evaluate_classifier,
 )
 
@@ -46,6 +48,50 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual([result.accuracy for result in results], [0.5, 1.0])
         self.assertAlmostEqual(results[0].macro_f1, 1.0 / 3.0)
         self.assertAlmostEqual(results[1].macro_f1, 1.0)
+
+    def test_class_snr_accuracy_has_class_rows_and_snr_columns(self) -> None:
+        labels = torch.tensor([0, 0, 1, 1, 0, 0, 1, 1])
+        predictions = torch.tensor([0, 1, 1, 1, 0, 0, 0, 1])
+        snrs = torch.tensor([-10, -10, -10, -10, 10, 10, 10, 10])
+
+        result = calculate_class_snr_accuracy(
+            labels,
+            predictions,
+            snrs,
+            num_classes=2,
+        )
+
+        self.assertEqual(result.snrs, (-10.0, 10.0))
+        self.assertEqual(result.sample_counts, ((2, 2), (2, 2)))
+        self.assertEqual(result.accuracy, ((0.5, 1.0), (1.0, 0.5)))
+
+    def test_snr_segments_produce_independent_confusion_matrices(self) -> None:
+        labels = torch.tensor([0, 1, 0, 1])
+        predictions = torch.tensor([0, 0, 0, 1])
+        snrs = torch.tensor([-10, -10, 10, 10])
+
+        result = calculate_snr_segment_metrics(
+            labels,
+            predictions,
+            snrs,
+            num_classes=2,
+            segments={"low": (None, -10), "high": (10, None)},
+        )
+
+        self.assertEqual(result["low"].confusion_matrix, ((1, 0), (1, 0)))
+        self.assertEqual(result["high"].confusion_matrix, ((1, 0), (0, 1)))
+        self.assertAlmostEqual(result["low"].accuracy, 0.5)
+        self.assertAlmostEqual(result["high"].accuracy, 1.0)
+
+    def test_empty_snr_segment_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "contains no samples"):
+            calculate_snr_segment_metrics(
+                torch.tensor([0, 1]),
+                torch.tensor([0, 1]),
+                torch.tensor([0, 0]),
+                num_classes=2,
+                segments={"missing": (10, None)},
+            )
 
     def test_invalid_class_index_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "valid class"):

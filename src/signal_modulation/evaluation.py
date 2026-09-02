@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Sequence
 
 import torch
 from torch import Tensor, nn
@@ -41,6 +41,15 @@ class ModelEvaluation:
     sample_count: int
     classification: ClassificationMetrics
     by_snr: tuple[SNRMetrics, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ClassSNRAccuracy:
+    """Per-class accuracy rows over ordered SNR columns."""
+
+    snrs: tuple[float, ...]
+    accuracy: tuple[tuple[float, ...], ...]
+    sample_counts: tuple[tuple[int, ...], ...]
 
 
 def _as_cpu_long(values: Tensor, name: str) -> Tensor:
@@ -154,6 +163,120 @@ def calculate_snr_metrics(
             )
         )
     return tuple(results)
+
+
+def calculate_class_snr_accuracy(
+    labels: Tensor,
+    predictions: Tensor,
+    snrs: Tensor,
+    *,
+    num_classes: int,
+    snr_values: Sequence[float] | None = None,
+) -> ClassSNRAccuracy:
+    """Return a ``(num_classes, num_snrs)`` conditional-accuracy matrix."""
+
+    if num_classes < 2:
+        raise ValueError("num_classes must be at least two")
+    label_values = _as_cpu_long(labels, "labels")
+    prediction_values = _as_cpu_long(predictions, "predictions")
+    observed_snrs = torch.as_tensor(snrs).detach().cpu().to(dtype=torch.float32)
+    if observed_snrs.ndim != 1:
+        raise ValueError("snrs must be one-dimensional")
+    if (
+        label_values.numel() == 0
+        or label_values.shape != prediction_values.shape
+        or label_values.shape != observed_snrs.shape
+    ):
+        raise ValueError("labels, predictions, and snrs must have the same non-zero shape")
+    if not torch.isfinite(observed_snrs).all():
+        raise ValueError("snrs must contain only finite values")
+    if (
+        torch.any(label_values < 0)
+        or torch.any(label_values >= num_classes)
+        or torch.any(prediction_values < 0)
+        or torch.any(prediction_values >= num_classes)
+    ):
+        raise ValueError("labels and predictions must be valid class indices")
+
+    if snr_values is None:
+        ordered_snrs = tuple(float(value) for value in torch.unique(observed_snrs, sorted=True))
+    else:
+        ordered_snrs = tuple(float(value) for value in snr_values)
+        if (
+            not ordered_snrs
+            or len(set(ordered_snrs)) != len(ordered_snrs)
+            or any(not torch.isfinite(torch.tensor(value)) for value in ordered_snrs)
+        ):
+            raise ValueError("snr_values must contain unique finite values")
+
+    accuracy_rows: list[tuple[float, ...]] = []
+    count_rows: list[tuple[int, ...]] = []
+    for class_index in range(num_classes):
+        class_accuracies: list[float] = []
+        class_counts: list[int] = []
+        for snr in ordered_snrs:
+            mask = (label_values == class_index) & (observed_snrs == snr)
+            sample_count = int(mask.sum())
+            class_counts.append(sample_count)
+            class_accuracies.append(
+                float((prediction_values[mask] == class_index).to(torch.float64).mean())
+                if sample_count
+                else float("nan")
+            )
+        accuracy_rows.append(tuple(class_accuracies))
+        count_rows.append(tuple(class_counts))
+    return ClassSNRAccuracy(
+        snrs=ordered_snrs,
+        accuracy=tuple(accuracy_rows),
+        sample_counts=tuple(count_rows),
+    )
+
+
+def calculate_snr_segment_metrics(
+    labels: Tensor,
+    predictions: Tensor,
+    snrs: Tensor,
+    *,
+    num_classes: int,
+    segments: Mapping[str, tuple[float | None, float | None]],
+) -> dict[str, ClassificationMetrics]:
+    """Calculate confusion-derived metrics for inclusive SNR ranges."""
+
+    label_values = _as_cpu_long(labels, "labels")
+    prediction_values = _as_cpu_long(predictions, "predictions")
+    snr_values = torch.as_tensor(snrs).detach().cpu().to(dtype=torch.float32)
+    if snr_values.ndim != 1:
+        raise ValueError("snrs must be one-dimensional")
+    if (
+        label_values.numel() == 0
+        or label_values.shape != prediction_values.shape
+        or label_values.shape != snr_values.shape
+    ):
+        raise ValueError("labels, predictions, and snrs must have the same non-zero shape")
+    if not torch.isfinite(snr_values).all():
+        raise ValueError("snrs must contain only finite values")
+    if not segments:
+        raise ValueError("segments must not be empty")
+
+    results: dict[str, ClassificationMetrics] = {}
+    for name, (minimum, maximum) in segments.items():
+        if not name:
+            raise ValueError("segment names must be non-empty")
+        if minimum is not None and maximum is not None and minimum > maximum:
+            raise ValueError("segment minimum must not exceed maximum")
+        mask = torch.ones_like(snr_values, dtype=torch.bool)
+        if minimum is not None:
+            mask &= snr_values >= minimum
+        if maximum is not None:
+            mask &= snr_values <= maximum
+        if not bool(mask.any()):
+            raise ValueError(f"SNR segment contains no samples: {name}")
+        results[name] = calculate_classification_metrics(
+            label_values[mask],
+            prediction_values[mask],
+            num_classes=num_classes,
+        )
+    return results
 
 
 def evaluate_classifier(
