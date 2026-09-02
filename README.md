@@ -4,7 +4,7 @@
 
 ## 结果概览
 
-项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。当前本地纠正版已完成W-A至W-C，正在进行W-D发布打包与最终审计。
+项目使用固定的154,000条train和33,000条validation进行开发；V1阶段已经启封的33,000条test永久退出V2模型选择和调参流程。W-A至W-D已完成，本地纠正版发布审计通过；远端push与最终HEAD CI状态见[`docs/FINAL_FREEZE_AUDIT.md`](docs/FINAL_FREEZE_AUDIT.md)。
 
 ![五个预注册seed下的validation Accuracy-SNR曲线](experiments/v2/analysis/accuracy_vs_snr.svg)
 

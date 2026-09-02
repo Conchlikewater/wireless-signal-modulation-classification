@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-- 当前阶段：W-A、W-B、W-C已完成；W-D交付打包待执行，原最终冻结结论仍保持撤销
+- 当前阶段：W-A、W-B、W-C、W-D已完成；本地纠正版发布审计通过，等待远端push与最终HEAD CI
 - 真实开工日期：2026-08-31
 - ⑤ 拥有权验证：已完成
 - 已完成阶段：W0、W1、W2、W3、W4
@@ -34,6 +34,14 @@
 - 高SNR对两者的Macro F1 paired delta为`+3.13 ± 3.29 pp / +2.79 ± 3.35 pp`且均4/5同向；低SNR相对A2-G为`-1.47 ± 3.26 pp`，超出冻结边界，故联合假设正式判为“不支持”。
 - 首次汇总器曾误标为“部分支持”。原汇总未覆盖，新增`SUMMARY_ERRATA.json`和`w5_summary_corrected.json`；只纠正结论标签和重跑确定性汇总，没有重训。
 - 5个checkpoint均通过严格加载与哈希校验；catalog已从20次追加到25次，旧20份run manifest仍保持字节不变。当前163项完整测试通过。
+
+### 交付打包 W-D（已完成）
+
+- README按对外顺序展示项目定位、SNR曲线、三条主结论、复现方式、工程证据和能力边界；零结果与validation乐观偏差位于显著位置。
+- 新增`scripts/predict_single.py`：加载默认A1 checkpoint，接收单条float32 `(2,128)` NumPy信号，输出11类预测和softmax置信度；不扩展为API、批处理、导出或容器。
+- 推理demo通过构造checkpoint和仓库真实A1 checkpoint两类测试；本地最终测试总数为166项。
+- 本地纠正版发布审计通过：25份结果、25个checkpoint、25份manifest、2项勘误和67个受保护历史文件均核对；W5代表manifest dry-run成功且未加载信号、训练或访问V1 test。
+- 远端发布仍需push新纠正版tag并等待最终HEAD CI；旧`wireless-v2-core`不得推送。
 
 ### W0
 
@@ -128,9 +136,9 @@
 
 ## 未决问题
 
-- 当前阻塞纠正版发布：W-D交付打包、纠正版最终审计与远端CI尚未完成。
+- 当前仅剩远端发布验收：push `main`与新纠正版tag、等待最终HEAD CI、检查公开README与报告。
 - 当前`main`的V2提交尚未推送到`origin/main`；远端仍停在V1提交`f9668db`。这不影响本地证据，但意味着远端备份和远端CI尚未覆盖V2。
-- V1历史56.38% test结果仍只有历史文档与图表，原V1 checkpoint和JSON不在当前`artifacts/`；因此它只能作为历史记录，不能声称当前可独立重算。V2的20次validation运行不受此问题影响，其JSON和checkpoint均已提交并通过哈希测试。
+- V1历史56.38% test结果仍只有历史文档与图表，原V1 checkpoint和JSON不在当前`artifacts/`；因此它只能作为历史记录，不能声称当前可独立重算。V2当前25次validation运行不受此问题影响，其JSON和checkpoint均已提交并通过哈希测试。
 - V2 Core没有新的独立test、真实空口数据或跨域结果；A2-L也只有固定validation证据。这些是明确的能力边界，不是本次实现遗漏。
 
 ## W4最终关闭条件

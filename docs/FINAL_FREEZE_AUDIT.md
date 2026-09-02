@@ -1,99 +1,112 @@
-# Wireless V2 Core最终冻结审计
+# Wireless V2 纠正版发布审计
 
-> 审计日期：2026-09-01  
-> 审计范围：唯一正式仓库的W0–W4代码、协议、Git历史、数据身份、固定划分、训练产物、统计汇总、manifest复现、测试、CI和文档  
-> 当前结论（2026-09-02）：原“通过、可以冻结”结论撤销；开发阶段完成，发布纠错进行中。
+> 审计日期：2026-09-02
+>
+> 审计范围：W-A发布纠错、W-B错误分析、W-C A2-L扩展、W-D交付打包，以及既有W0–W4全部证据
+>
+> 当前结论：**本地纠正版发布审计通过；远端push、最终HEAD CI与公开页面仍待发布步骤验证。**
 
 ## 1. 审计边界
 
-本次没有重新训练、没有创建V1 test DataLoader、没有读取V1 test信号或标签、没有执行V1 test推理，也没有安装依赖。对640,919,653字节的RadioML Pickle只计算SHA-256；代表性复现验收只执行默认dry-run。
+本轮没有重新划分数据，没有创建V1 test DataLoader，没有读取V1 test信号或标签，没有执行V1 test推理，也没有把V1历史test指标用于模型选择。除计划内5次A2-L正式train/validation和一次预先设阈值的A3 replay外，没有重训A0、A1、A2-T、A2-G或A3。
 
-实际证据优先级为：代码与已提交产物、自动化测试、Git历史、冻结协议、说明文档。归档在`docs/archive/`的旧计划不是当前执行依据。
+证据优先级为：已提交代码与机器可读产物、自动化测试、Git历史、冻结协议、说明文档。`docs/archive/`只保留旧计划背景，不是当前执行依据。
 
-## 2. 总体结论
+## 2. 发布门结论
 
-Wireless V2 Core的训练与实验开发阶段已经完成：数据边界固定，训练随机性与划分随机性解耦，20次预注册validation运行全部保留。发布审计随后发现A3历史JSON和run manifest把`config.dropout`误记为`0.3`，实际模型工厂使用`0.0`。因此本文件原先的“最终冻结通过”判断不再有效，必须完成勘误、语义测试、训练级复现和纠正版发布审计。
+| 发布门 | 状态 | 可验证证据 |
+|---|---|---|
+| A3 effective配置与实际模型一致 | 通过 | `A3/ERRATA.json`；语义测试实例化模型并检查`nn.Dropout.p` |
+| 原始20组W2/W3历史产物不变 | 通过 | 67个受保护文件全部与`c05d7ef`基线SHA-256一致 |
+| 语义测试能抓住人为错误 | 通过 | 把A3 effective值临时改回0.3时，5个seed均出现`[0.0] != [0.3]`，恢复后全绿 |
+| 一次训练级复现 | 通过 | A3/20260901的best epoch、loss、Accuracy、Macro F1和checkpoint SHA全部与历史一致 |
+| validation乐观偏差披露 | 通过 | README与技术报告均在主结果附近明确说明 |
+| 错误分析 | 通过 | 四arm×五seed固定validation推理；SNR曲线、高/低SNR混淆、class×SNR热力图与书面发现齐全 |
+| A2-L预注册顺序 | 通过 | 假设提交`bb7c6ec`是模型提交`5372c20`的祖先 |
+| A2-L容量与产物 | 通过 | 223,932参数；与A2-T差0.292%；5个JSON/checkpoint均可加载并通过哈希校验 |
+| A2-L结论 | 通过 | 联合假设按预注册规则判“不支持”；首次错误汇总保留并登记勘误 |
+| run manifest | 通过 | catalog含5配置×5 seed共25份；W5代表manifest核对9项依赖并成功生成dry-run命令 |
+| 最小推理demo | 通过 | 构造checkpoint与仓库真实A1 checkpoint均完成单条`(2,128)`输入预测 |
+| 完整测试 | 通过 | 本地166项`unittest`全部通过 |
+| Python源码解析 | 通过 | `src/`、`scripts/`、`tests/`共78个Python文件均通过AST解析 |
+| README链接 | 通过 | 18个本地文件/图表链接全部存在 |
+| Git对象 | 通过 | `git fsck --full`无可达对象损坏；dangling对象不属于当前提交历史损坏 |
+| 远端发布与CI | 待验证 | 本审计提交前`main`比`origin/main`领先46个提交；最终push后单独核对 |
 
-它适合用于通信AI、智能信号处理、PyTorch/初级ML工程实习面试，但不是研究型算法创新、真实空口系统或生产部署项目。当前不需要继续堆模型；继续扩张P0的边际价值低于转入第二个项目R0。
+## 3. 数据与test边界
 
-## 3. 证据核对表
+- 数据SHA-256：`b29ccc25b00d0718cd3b70ffa9158662ec83f6d9b63ffd845c7bcbe3b3096e8c`；
+- 固定split manifest SHA-256：`48ad195d5552e3ec4e5a6d1bc4fc0f20099df8dc70f8eb78a80df95e7f5297a7`；
+- 样本：train 154,000 / validation 33,000 / V1 test metadata 33,000；
+- 220个modulation×SNR分层单元，每单元`700/150/150`；
+- V2入口只返回train/validation；test只允许样本数、索引hash和互斥检查；
+- V1历史56.38% Accuracy与56.26% Macro F1仍只是一次性历史验收，不能作为V2结果或当前可独立重算的指标。
 
-| 项目 | 审计结果 | 证据 | 结论 |
-|---|---|---|---|
-| 数据身份 | 通过 | Pickle SHA-256为`b29ccc25...09e8c`，大小640,919,653字节 | 与冻结协议一致 |
-| 固定划分 | 通过 | manifest SHA-256为`48ad195d...97a7`；索引归档SHA-256为`aae52254...24bb` | 154,000/33,000/33,000，220个modulation×SNR分层单元 |
-| Test隔离 | 通过 | V2入口只返回train/validation；测试验证无test索引、Subset或DataLoader | V1 test仅保留数量和索引哈希元数据 |
-| 预注册顺序 | 通过 | 协议提交`3cfc1c4`早于W1–W4实现与全部结果提交 | seed、矩阵和口径不是看结果后决定 |
-| W2主对照 | 通过 | 10份JSON、10个checkpoint、`w2_summary.json` | A0/A1各5 seed，零失败、零替换 |
-| W3消融 | 指标产物通过、A3元数据有勘误 | 10份新JSON、10个checkpoint、5个初始backbone、`w3_summary.json`、`A3/ERRATA.json` | A2-T复用A1；A2-G/A3各5 seed；A3实际`p=0`但记录误写`0.3` |
-| 统计口径 | 通过 | 汇总测试从原始JSON重算mean、sample std、paired delta | 没有只报最好seed；`n=5`只作描述性统计 |
-| 复现清单 | 纠错中 | 20份历史run manifest保持原字节，catalog登记A3勘误 | 覆盖4配置×5 seed；读取A3时必须应用勘误 |
-| Checkpoint完整性 | 通过 | 20个正式checkpoint均逐一哈希并可加载 | V2指标有原始产物支持 |
-| 共享初始化 | 通过 | 5个backbone文件与state hash；A3/A1初始state hash相同 | A2/A3公平性证据存在 |
-| 启动前审计 | 通过 | A2-G/20260901 dry-run核对8项仓库文件和数据SHA-256 | 不加载信号、不训练、不评测test |
-| 自动化测试 | 当前通过 | 本地140项`unittest`全部通过 | 新增effective配置语义与67个历史产物字节保护 |
-| CI | 配置通过、远端待同步 | GitHub Actions使用Python 3.12运行同套测试并解析源码 | 当前V2尚未推送，远端CI还未验证最终HEAD |
-| Git对象 | 通过 | `git fsck --full`没有可达对象损坏 | 少量dangling对象不属于当前历史损坏 |
+本轮不执行A-5的可选test再次启封，因为用户没有给出单独的人类决策，且当前实验目标不需要用test量化validation乐观偏差。
 
-## 4. 结果可信度
+## 4. 产物完整性
 
-V2的下列结论可以安全写进项目说明和简历，但必须带上“固定validation、5个预注册seed”的限定：
+当前正式V2产物：
 
-- A0 Macro F1：`40.24% ± 2.52`个百分点；
-- A1/A2-T Macro F1：`55.47% ± 1.05`个百分点；
-- `A1−A0` Macro F1 paired delta：`+15.23 ± 3.35`个百分点，`n_pairs=5`，方向全部为正；
-- A2-G与A2-T差异小于波动且方向不一致，不支持替换当前A1；
-- A3去掉Dropout后均值下降、波动增大，但方向不完全一致，只能说当前证据不支持移除Dropout；
-- 低SNR接近机会水平，0 dB以上约进入77%–82%的平台，并存在QAM16/QAM64、WBFM/AM-DSB等混淆。
+- 25份`validation_result.json`；
+- 25个best checkpoint；
+- 5个共享初始backbone；
+- W2、W3历史汇总各1份；
+- W5原汇总、勘误和纠正版汇总；
+- 25份单次run manifest和1份catalog；
+- 0个`failure.json`。
 
-不能写成：V2 final test、统计显著提升、SOTA、真实空口鲁棒性、跨设备泛化或生产性能。
+受保护历史范围仍是纠错前20份JSON、20个checkpoint、5个初始backbone、2份W2/W3 summary和20份W2/W3 run manifest，共67个文件。保护脚本逐一从基线Git对象重建字节并核对SHA-256，结果全部匹配。
 
-V1的56.38% Accuracy与56.26% Macro F1仍可表述为“一次性历史test记录”，但原V1 checkpoint和JSON不在当前仓库产物中，因此不能声称现在能从仓库独立重算。V2的20次validation结果不存在这个缺口。
+## 5. 两项勘误
 
-## 5. 最终审计修复
+### 5.1 A3配置元数据
 
-审计发现W4 dry-run原先只核对结果JSON、checkpoint、split manifest、协议和依赖规格；真正执行A2-G还依赖共享初始backbone，真正建立DataLoader还依赖`split_indices.npz`。如果这两个文件缺失或被替换，旧dry-run可能先显示可执行、随后才在正式启动时报错。
+5份A3历史JSON与run manifest的`config.dropout`记录为0.3，实际模型工厂使用0.0。原始文件不覆盖；`experiments/v2/w3/A3/ERRATA.json`声明effective值。影响仅限记录语义，不改变训练模型、checkpoint或指标。
 
-修复后：
+### 5.2 A2-L汇总判定
 
-1. A0/A1必须没有W3初始化字段；
-2. A2-G必须提供共享backbone文件、文件SHA-256和state SHA-256；
-3. A3必须声明与配对A1初始state一致，两个SHA-256必须相同；
-4. manifest初始化记录必须与原始结果JSON一致；
-5. dry-run会核对固定split索引归档；
-6. A2-G dry-run会额外核对共享初始backbone。
+首次`w5_summary.json`把联合假设误判为`partially_supported`。预注册规则要求：两组高SNR条件都通过、但任一低SNR边界失败时应判`not_supported`。原汇总SHA-256固定为`9beca76b...d5c61a`并保留；`SUMMARY_ERRATA.json`和`w5_summary_corrected.json`给出正确结论。只重跑确定性汇总，没有重训模型。
 
-这是复现安全检查，不改变输入样本、batch顺序、模型计算、训练动态、checkpoint选择或指标计算。历史JSON、checkpoint和20份manifest均未覆盖，因此无需重训。
+这两个案例都展示同一工程原则：不能为了让仓库“看起来干净”改写历史证据；应保留原文件、增加机器可读勘误，并让测试保护正确解释。
 
-## 6. 剩余风险与限制
+## 6. 结果与安全表述
 
-### 仍阻塞纠正版发布
+可以写进简历，但必须带“RadioML 2016.10A固定validation、五个预注册seed”的限定：
 
-- A3元数据勘误、语义测试、一次训练级`--execute`复现和validation同集选择偏差声明已经完成；纠正版最终发布审计尚未完成。
-- 旧`wireless-v2-core` tag创建于缺陷发现之前，不得推送或用作纠正版发布标记。
+- A1相对A0的Macro F1 paired delta：`+15.23 ± 3.35 pp`，5/5同向；
+- A2-T/A2-G容量受控比较是零结果：`A2-T−A2-G=-0.25 ± 1.38 pp`，方向不一致；
+- 去Dropout没有可靠收益：`A2-T−A3=+1.08 ± 3.54 pp`，方向不完全一致；
+- A2-L总体Macro F1为`58.28% ± 2.61 pp`，但联合假设不支持：高SNR改善伴随低SNR相对A2-G超边界退化；
+- 错误分析观察到低SNR预测塌缩，以及高SNRQAM16/QAM64、WBFM/AM-DSB残余混淆。
 
-### 不单独阻塞发布
+不能写成：V2 final test、统计显著提升、SOTA、真实空口鲁棒性、跨设备泛化或生产性能。每次checkpoint与报告指标使用同一validation，存在模型选择造成的乐观偏差。
 
-- 顶层NumPy和PyTorch版本已固定，但没有完整锁定驱动与全部传递依赖；manifest记录了历史运行环境，仍不承诺跨机器bitwise一致。
-- CI工作流存在，本地等价测试已通过；因V2提交尚未推送，远端CI和远端备份仍停在V1。
-- 训练和延迟只在一台RTX 4060 Laptop GPU环境验证，不能外推所有硬件。
-- RadioML 2016.10A是公开合成数据，固定validation不是独立外部证据。
-- best checkpoint和报告指标使用同一validation，存在模型选择造成的乐观偏差；本轮未获单独授权再次启封V1 test，因此没有重跑test量化该偏差。
+## 7. 工程与复现边界
 
-### 未来P1才处理
+manifest冻结并校验数据、split、seed、配置/effective语义、环境、Git commit、原始JSON、checkpoint、协议、依赖规格和共享初始化。dry-run不反序列化信号、不训练；只有显式`--execute`才启动单次train/validation replay，并拒绝覆盖已有输出。
 
-1. `temporal occlusion sensitivity`：低成本解释模型依赖哪些时间区域；只作解释，不用来宣称因果。
-2. `Channel Robustness Lab`：按结果前冻结的样本与扰动规则演示相位、频偏、时移、多径敏感性；不是独立test。
-3. 独立外部数据：另写生成协议，冻结后只评一次；这是补足域外证据最有价值的方向。
+这些机制支持“身份可审计、运行可重启”，不保证任意硬件和驱动上的逐位一致。顶层依赖版本已固定，但没有Docker、驱动镜像或完整传递依赖锁；这是计划内能力边界。
 
-Transformer、强化学习、大型网络、Web仪表盘、实验数据库和刷榜式调参均不建议现在开发。
+## 8. 剩余风险
 
-## 7. 冻结与后续决策
+### 发布前必须完成
 
-- Wireless训练开发阶段已完成，但发布纠错尚有必须项；默认模型暂时保持A1/A2-T。
-- 此后不修改正式W2/W3 JSON、checkpoint、汇总或manifest，不继续查看V1 test。
-- 如未来开展P1，必须创建新协议版本、新目录和新提交链，不覆盖V2 Core。
-- 本地V1基线应标记在纯V1提交`f9668db`；不移动、也不推送缺陷发现前创建的`wireless-v2-core` tag，纠正版通过后使用新tag。
-- 在进入R0前，只剩版本标记和可选的`origin/main`远端同步；远端推送属于发布/备份动作，不影响本地审计结论。
+1. 创建新的纠正版tag；旧本地`wireless-v2-core`指向缺陷发现前提交`c05d7ef`，不得推送；
+2. push `main`和新tag；
+3. 等最终HEAD GitHub Actions通过；
+4. 从公开页面确认README、技术报告和CI可见。
 
-因此，当前先完成已经批准的发布纠错、错误分析、A2-L预注册实验和交付打包；在新的发布审计通过前，不再声称Wireless V2 Core已经最终冻结。
+### 不阻塞本次发布
+
+- RadioML是公开合成数据，没有独立外部集或真实空口证据；
+- A2-L只有固定validation结果，预注册联合假设不支持；
+- V1历史test缺少当前仓库中的原始checkpoint/JSON，不能独立重算；
+- 延迟只在一台RTX 4060 Laptop GPU测量；
+- 最小推理demo不是数据采集、同步、切窗、拒识或生产服务。
+
+## 9. 后续范围
+
+Wireless当前P0不再扩张。若未来开启P1，优先级为：独立数据协议与域外集，其次是低成本temporal occlusion解释和受控Channel Robustness Lab。Transformer、强化学习、Web服务、实验数据库、Docker和刷榜式调参不进入当前发布。
+
+本地代码、产物和文档已经达到纠正版发布条件；远端push与CI结果在发布操作完成后另行报告。
