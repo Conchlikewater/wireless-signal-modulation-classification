@@ -18,6 +18,13 @@
 - A-5必做部分已完成：README和技术报告明确声明best checkpoint选择与指标报告使用同一validation，因此存在乐观偏差。没有单独人类授权再次启封V1 test，本轮未执行可选test评估。
 - A-6纠正版发布尚未完成，等待W-B、W-C和W-D完成后在最终HEAD执行。
 
+### 错误分析 W-B（已完成）
+
+- B-1新增class×SNR准确率矩阵和任意闭区间SNR分段混淆指标，使用构造数据验证shape、计数和矩阵方向。
+- B-2使用四个arm×五个历史checkpoint在固定validation重新推理；每次总体Accuracy/Macro F1均与历史JSON一致，未训练、未访问V1 test。
+- 产物包括四arm五seed SNR曲线、高/低SNR混淆矩阵、class×SNR热力图和机器可读summary；147项完整测试通过。
+- B-3确认低SNR主要发生向AM-SSB的预测塌缩；高SNR仍有QAM16/QAM64和WBFM/AM-DSB双向混淆。星座嵌套与音频静默仅作机制假设，没有包装成已证因果。
+
 ### W0
 
 - 采用《2026 年 9 月 双项目升级执行协议 v6》作为唯一上位基线，旧计划只作归档背景。
@@ -111,7 +118,7 @@
 
 ## 未决问题
 
-- 当前阻塞纠正版发布：W-B错误分析、W-C A2-L、W-D交付打包、纠正版最终审计与远端CI尚未完成。
+- 当前阻塞纠正版发布：W-C A2-L、W-D交付打包、纠正版最终审计与远端CI尚未完成。
 - 当前`main`的V2提交尚未推送到`origin/main`；远端仍停在V1提交`f9668db`。这不影响本地证据，但意味着远端备份和远端CI尚未覆盖V2。
 - V1历史56.38% test结果仍只有历史文档与图表，原V1 checkpoint和JSON不在当前`artifacts/`；因此它只能作为历史记录，不能声称当前可独立重算。V2的20次validation运行不受此问题影响，其JSON和checkpoint均已提交并通过哈希测试。
 - V2 Core没有新的独立test、真实空口数据或跨域结果；这些是明确的能力边界，不是本次实现遗漏。
