@@ -4,3 +4,9 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.svg text eol=lf
+# Historical manifests and result hashes were recorded from CRLF worktree bytes.
+# Force the same checkout representation on every OS so their SHA-256 values
+# remain portable without rewriting any frozen JSON artifact.
+*.json text eol=crlf
+# This erratum was intentionally added later with an LF-based catalog hash.
+experiments/v2/w3/A3/ERRATA.json text eol=lf

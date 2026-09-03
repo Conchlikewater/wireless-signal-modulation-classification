@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          # Integrity tests compare frozen artifacts with the pre-erratum commit.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6

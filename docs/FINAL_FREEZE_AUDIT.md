@@ -4,7 +4,7 @@
 >
 > 审计范围：W-A发布纠错、W-B错误分析、W-C A2-L扩展、W-D交付打包，以及既有W0–W4全部证据
 >
-> 当前结论：**本地纠正版发布审计通过；远端push、最终HEAD CI与公开页面仍待发布步骤验证。**
+> 当前结论：**本地纠正版发布审计通过；首次远端CI发现跨平台校验缺陷，修复后的最终HEAD仍需远端复验。**
 
 ## 1. 审计边界
 
@@ -27,11 +27,11 @@
 | A2-L结论 | 通过 | 联合假设按预注册规则判“不支持”；首次错误汇总保留并登记勘误 |
 | run manifest | 通过 | catalog含5配置×5 seed共25份；W5代表manifest核对9项依赖并成功生成dry-run命令 |
 | 最小推理demo | 通过 | 构造checkpoint与仓库真实A1 checkpoint均完成单条`(2,128)`输入预测 |
-| 完整测试 | 通过 | 本地166项`unittest`全部通过 |
-| Python源码解析 | 通过 | `src/`、`scripts/`、`tests/`共78个Python文件均通过AST解析 |
-| README链接 | 通过 | 18个本地文件/图表链接全部存在 |
+| 完整测试 | 通过 | 加入发布可移植性回归检查后，本地168项`unittest`全部通过 |
+| Python源码解析 | 通过 | `src/`、`scripts/`、`tests/`共79个Python文件均通过AST解析 |
+| README链接 | 通过 | README中的本地文件/图表链接全部存在 |
 | Git对象 | 通过 | `git fsck --full`无可达对象损坏；dangling对象不属于当前提交历史损坏 |
-| 远端发布与CI | 待验证 | 本审计提交前`main`比`origin/main`领先46个提交；最终push后单独核对 |
+| 远端发布与CI | 纠错后待复验 | 首次远端CI在Linux暴露浅克隆缺少基线commit、JSON换行表示不同两项问题；模型和实验产物测试未显示数值缺陷 |
 
 ## 3. 数据与test边界
 
@@ -92,10 +92,11 @@ manifest冻结并校验数据、split、seed、配置/effective语义、环境�
 
 ### 发布前必须完成
 
-1. 创建新的纠正版tag；旧本地`wireless-v2-core`指向缺陷发现前提交`c05d7ef`，不得推送；
-2. push `main`和新tag；
-3. 等最终HEAD GitHub Actions通过；
-4. 从公开页面确认README、技术报告和CI可见。
+1. 提交跨平台发布校验修复，且不修改任何冻结实验产物；
+2. 创建递增的纠正版tag；缺陷发现前的旧本地`wireless-v2-core`及首次CI失败的`wireless-v2-core-corrected`都不得作为最终通过版本；
+3. push `main`和新tag；
+4. 等最终HEAD GitHub Actions通过；
+5. 从公开页面确认README、技术报告和CI可见。
 
 ### 不阻塞本次发布
 
@@ -109,4 +110,4 @@ manifest冻结并校验数据、split、seed、配置/effective语义、环境�
 
 Wireless当前P0不再扩张。若未来开启P1，优先级为：独立数据协议与域外集，其次是低成本temporal occlusion解释和受控Channel Robustness Lab。Transformer、强化学习、Web服务、实验数据库、Docker和刷榜式调参不进入当前发布。
 
-本地代码、产物和文档已经达到纠正版发布条件；远端push与CI结果在发布操作完成后另行报告。
+本地模型、实验产物和文档已经达到纠正版发布条件。首次远端CI失败属于校验链的跨平台缺陷：工作流默认浅克隆无法读取`c05d7ef`，且历史JSON的SHA-256记录基于CRLF工作区字节，而Linux默认检出LF。修复采用完整历史检出及跨平台统一JSON检出换行，不重写冻结JSON；最终远端CI结果另行报告。

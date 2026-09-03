@@ -22,7 +22,7 @@ V2正式运行包含5个配置×5个预注册run seed：
 - A3：仅把A1的Dropout从`p=0.3`改为`p=0`。
 - A2-L：共享初始backbone，在32步序列上使用容量受控LSTM聚合。
 
-25次运行的原始JSON、best checkpoint、共享初始backbone和run manifest均已提交。最初20次W2/W3历史文件继续保持原字节不变；A3配置勘误见[`experiments/v2/w3/A3/ERRATA.json`](experiments/v2/w3/A3/ERRATA.json)，A2-L汇总判定勘误见[`experiments/v2/w5/SUMMARY_ERRATA.json`](experiments/v2/w5/SUMMARY_ERRATA.json)。当前163项离线自动化测试通过；发布结论仍以最终纠正版审计为准。
+25次运行的原始JSON、best checkpoint、共享初始backbone和run manifest均已提交。最初20次W2/W3历史文件继续保持原字节不变；A3配置勘误见[`experiments/v2/w3/A3/ERRATA.json`](experiments/v2/w3/A3/ERRATA.json)，A2-L汇总判定勘误见[`experiments/v2/w5/SUMMARY_ERRATA.json`](experiments/v2/w5/SUMMARY_ERRATA.json)。当前168项离线自动化测试通过；发布结论仍以最终纠正版审计为准。
 
 ## V2 Core结果
 
@@ -134,7 +134,7 @@ python -m venv .venv
 
 ## 自动化测试与CI
 
-当前163项离线测试不需要RadioML数据、GPU或API密钥：
+当前168项离线测试不需要RadioML数据、GPU或API密钥：
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
