@@ -10,3 +10,6 @@
 *.json text eol=crlf
 # This erratum was intentionally added later with an LF-based catalog hash.
 experiments/v2/w3/A3/ERRATA.json text eol=lf
+# Run manifests also freeze these dependency-file hashes from CRLF bytes.
+pyproject.toml text eol=crlf
+requirements*.txt text eol=crlf

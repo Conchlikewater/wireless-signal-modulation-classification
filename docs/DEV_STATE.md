@@ -33,13 +33,13 @@
 - A2-L Accuracy为`56.76% ± 2.08 pp`，Macro F1为`58.28% ± 2.61 pp`；相对A2-T/A2-G总体Macro F1 paired delta为`+2.80 ± 2.40 pp / +2.55 ± 2.44 pp`。
 - 高SNR对两者的Macro F1 paired delta为`+3.13 ± 3.29 pp / +2.79 ± 3.35 pp`且均4/5同向；低SNR相对A2-G为`-1.47 ± 3.26 pp`，超出冻结边界，故联合假设正式判为“不支持”。
 - 首次汇总器曾误标为“部分支持”。原汇总未覆盖，新增`SUMMARY_ERRATA.json`和`w5_summary_corrected.json`；只纠正结论标签和重跑确定性汇总，没有重训。
-- 5个checkpoint均通过严格加载与哈希校验；catalog已从20次追加到25次，旧20份run manifest仍保持字节不变。当前168项完整测试通过。
+- 5个checkpoint均通过严格加载与哈希校验；catalog已从20次追加到25次，旧20份run manifest仍保持字节不变。当前169项完整测试通过。
 
 ### 交付打包 W-D（已完成）
 
 - README按对外顺序展示项目定位、SNR曲线、三条主结论、复现方式、工程证据和能力边界；零结果与validation乐观偏差位于显著位置。
 - 新增`scripts/predict_single.py`：加载默认A1 checkpoint，接收单条float32 `(2,128)` NumPy信号，输出11类预测和softmax置信度；不扩展为API、批处理、导出或容器。
-- 推理demo通过构造checkpoint和仓库真实A1 checkpoint两类测试；加入2项发布可移植性回归测试后，本地最终测试总数为168项。
+- 推理demo通过构造checkpoint和仓库真实A1 checkpoint两类测试；加入3项发布可移植性回归测试后，本地最终测试总数为169项。
 - 本地纠正版发布审计通过：25份结果、25个checkpoint、25份manifest、2项勘误和67个受保护历史文件均核对；W5代表manifest dry-run成功且未加载信号、训练或访问V1 test。
 - 首次纠正版tag `wireless-v2-core-corrected` 已推送，但对应CI暴露浅克隆与JSON换行导致的跨平台校验失败；该tag不得作为最终通过版本，修复后使用新的递增纠正版tag。
 
@@ -137,7 +137,7 @@
 ## 未决问题
 
 - 当前剩余远端发布验收：提交跨平台CI修复、push `main`与新的递增纠正版tag、等待最终HEAD CI、检查公开README与报告。
-- V2已推送到`origin/main`；首次最终HEAD CI失败的原因是Actions浅克隆缺少历史基线提交，以及Linux使用LF而历史JSON哈希按Windows CRLF记录。模型、指标和冻结实验产物没有发生变化。
+- V2已推送到`origin/main`；远端CI先后暴露Actions浅克隆缺少历史基线提交，以及Linux使用LF而历史JSON、`pyproject.toml`和`requirements-gpu.txt`的登记哈希按Windows CRLF记录。模型、指标和冻结实验产物没有发生变化。
 - V1历史56.38% test结果仍只有历史文档与图表，原V1 checkpoint和JSON不在当前`artifacts/`；因此它只能作为历史记录，不能声称当前可独立重算。V2当前25次validation运行不受此问题影响，其JSON和checkpoint均已提交并通过哈希测试。
 - V2 Core没有新的独立test、真实空口数据或跨域结果；A2-L也只有固定validation证据。这些是明确的能力边界，不是本次实现遗漏。
 

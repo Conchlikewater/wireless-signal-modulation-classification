@@ -193,7 +193,7 @@ A2-T在代表性SNR上的五seed均值：
 - A2-L纠正版汇总：`experiments/v2/w5/w5_summary_corrected.json`，SHA-256 `95eeeaaa4eb105363598584447f5f3a942900562ea264f44f662d6f0a5326e25`；
 - manifest catalog：`experiments/v2/run_manifests/catalog.json`，已登记A3元数据与W5汇总判定两项勘误；
 - 原始JSON和best checkpoint：`experiments/v2/w2/`、`experiments/v2/w3/`、`experiments/v2/w5/`；
-- 自动化测试：当前168项离线`unittest`全部通过；语义测试检查各arm的`nn.Dropout.p`，W5测试加载5个A2-L checkpoint并重算汇总，保护测试验证67个既有历史产物仍与纠错前基线字节一致；发布可移植性测试保护JSON换行语义与完整Git历史检出；
+- 自动化测试：当前169项离线`unittest`全部通过；语义测试检查各arm的`nn.Dropout.p`，W5测试加载5个A2-L checkpoint并重算汇总，保护测试验证67个既有历史产物仍与纠错前基线字节一致；发布可移植性测试保护历史JSON及manifest依赖文件的换行语义与完整Git历史检出；
 - W4本身没有重新训练；发布纠错阶段完成一次A3训练级replay。两阶段均未访问V1 test信号、标签或推理结果。
 
 原冻结审计的撤销原因、Git边界、远端同步状态和后续范围见`docs/FINAL_FREEZE_AUDIT.md`。

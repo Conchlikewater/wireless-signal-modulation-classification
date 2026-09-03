@@ -27,11 +27,11 @@
 | A2-L结论 | 通过 | 联合假设按预注册规则判“不支持”；首次错误汇总保留并登记勘误 |
 | run manifest | 通过 | catalog含5配置×5 seed共25份；W5代表manifest核对9项依赖并成功生成dry-run命令 |
 | 最小推理demo | 通过 | 构造checkpoint与仓库真实A1 checkpoint均完成单条`(2,128)`输入预测 |
-| 完整测试 | 通过 | 加入发布可移植性回归检查后，本地168项`unittest`全部通过 |
+| 完整测试 | 通过 | 加入发布可移植性回归检查后，本地169项`unittest`全部通过 |
 | Python源码解析 | 通过 | `src/`、`scripts/`、`tests/`共79个Python文件均通过AST解析 |
 | README链接 | 通过 | README中的本地文件/图表链接全部存在 |
 | Git对象 | 通过 | `git fsck --full`无可达对象损坏；dangling对象不属于当前提交历史损坏 |
-| 远端发布与CI | 纠错后待复验 | 首次远端CI在Linux暴露浅克隆缺少基线commit、JSON换行表示不同两项问题；模型和实验产物测试未显示数值缺陷 |
+| 远端发布与CI | 纠错后待复验 | 远端CI在Linux暴露浅克隆缺少基线commit，以及历史JSON与manifest依赖文本换行表示不同；模型和实验产物测试未显示数值缺陷 |
 
 ## 3. 数据与test边界
 
@@ -110,4 +110,4 @@ manifest冻结并校验数据、split、seed、配置/effective语义、环境�
 
 Wireless当前P0不再扩张。若未来开启P1，优先级为：独立数据协议与域外集，其次是低成本temporal occlusion解释和受控Channel Robustness Lab。Transformer、强化学习、Web服务、实验数据库、Docker和刷榜式调参不进入当前发布。
 
-本地模型、实验产物和文档已经达到纠正版发布条件。首次远端CI失败属于校验链的跨平台缺陷：工作流默认浅克隆无法读取`c05d7ef`，且历史JSON的SHA-256记录基于CRLF工作区字节，而Linux默认检出LF。修复采用完整历史检出及跨平台统一JSON检出换行，不重写冻结JSON；最终远端CI结果另行报告。
+本地模型、实验产物和文档已经达到纠正版发布条件。远端CI失败属于校验链的跨平台缺陷：工作流默认浅克隆无法读取`c05d7ef`，且历史JSON、`pyproject.toml`与`requirements-gpu.txt`的SHA-256记录基于CRLF工作区字节，而Linux默认检出LF。修复采用完整历史检出及对冻结哈希相关文本显式统一检出换行，不重写任何冻结实验产物；最终远端CI结果另行报告。

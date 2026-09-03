@@ -40,6 +40,19 @@ class ReleasePortabilityTests(unittest.TestCase):
         self.assertIn("uses: actions/checkout@v6", workflow)
         self.assertIn("fetch-depth: 0", workflow)
 
+    def test_manifest_dependency_hashes_have_the_recorded_checkout_eol(self) -> None:
+        for relative_path in ("pyproject.toml", "requirements-gpu.txt"):
+            with self.subTest(path=relative_path):
+                result = subprocess.run(
+                    ["git", "check-attr", "text", "eol", "--", relative_path],
+                    cwd=self.repository_root,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertIn(f"{relative_path}: text: set", result.stdout)
+                self.assertIn(f"{relative_path}: eol: crlf", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
